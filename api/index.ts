@@ -106,4 +106,30 @@ app.get("/api/update-status", async (req, res) => {
   }
 });
 
+// NOVO ENDPOINT: Histórico de um site específico
+app.get("/api/site-logs", async (req, res) => {
+  const { ip } = req.query;
+  
+  if (!ip) {
+    return res.status(400).send("Falta o IP");
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('status_history')
+      .select('*')
+      .eq('site_ip', ip as string)
+      .order('changed_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error("Erro ao buscar histórico:", error);
+      return res.status(500).json([]);
+    }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json([]);
+  }
+});
+
 export default app;

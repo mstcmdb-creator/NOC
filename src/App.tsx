@@ -39,6 +39,8 @@ export default function App() {
   const [countdown, setCountdown] = useState(10);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [siteLogs, setSiteLogs] = useState<any[]>([]);
 
   const formatTMRO = (seconds: number) => {
     if (!seconds || seconds === 0) return '0s';
@@ -63,6 +65,21 @@ export default function App() {
     } catch (error) {
       console.error("Erro ao procurar dados:", error);
     }
+  };
+
+  const fetchSiteLogs = async (ip: string) => {
+    try {
+      const response = await fetch(`/api/site-logs?ip=${ip}`);
+      const data = await response.json();
+      setSiteLogs(data);
+    } catch (error) {
+      console.error("Erro ao buscar logs:", error);
+    }
+  };
+
+  const handleSiteClick = (site: Site) => {
+    setSelectedSite(site);
+    fetchSiteLogs(site.ip);
   };
 
   useEffect(() => {
@@ -96,6 +113,88 @@ export default function App() {
             onClick={() => setIsMobileMenuOpen(false)}
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden"
           />
+        )}
+      </AnimatePresence>
+
+      {/* NOVO: Modal de Histórico */}
+      <AnimatePresence>
+        {selectedSite && (
+          <div className="fixed inset-0 flex items-center justify-center z-[100] p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedSite(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">{selectedSite.nome_site}</h3>
+                  <p className="text-sm font-mono text-slate-400 mt-1">{selectedSite.ip} • SLA {selectedSite.uptime_sla.toFixed(2)}%</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedSite(null)}
+                  className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors shadow-sm"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-slate-400" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Histórico de Eventos</span>
+                </div>
+
+                <div className="space-y-4">
+                  {siteLogs.length > 0 ? (
+                    siteLogs.map((log, idx) => (
+                      <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-slate-200 transition-all">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                          log.status === 'up' ? 'bg-emerald-100' : 'bg-rose-100'
+                        }`}>
+                          {log.status === 'up' 
+                            ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> 
+                            : <AlertCircle className="w-5 h-5 text-rose-600" />
+                          }
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-center">
+                            <span className={`text-xs font-black uppercase tracking-wider ${
+                              log.status === 'up' ? 'text-emerald-600' : 'text-rose-600'
+                            }`}>
+                              {log.status === 'up' ? 'Recuperado (UP)' : 'Queda Detectada (DOWN)'}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              {new Date(log.changed_at).toLocaleString('pt-PT')}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">O dispositivo alterou o estado para {log.status.toUpperCase()}.</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                        <Activity className="w-8 h-8 text-slate-200" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-400">Nenhum evento registado para este site ainda.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tempo Médio de Resolução (TMRO): {formatTMRO(selectedSite.tmro_segundos)}</span>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -236,7 +335,7 @@ export default function App() {
                   <div className="space-y-4">
                     <AnimatePresence mode="popLayout">
                       {sitesOnline.map(site => (
-                        <SiteCard key={site.id} site={site} type="up" />
+                        <SiteCard key={site.id} site={site} type="up" onSelect={() => handleSiteClick(site)} />
                       ))}
                     </AnimatePresence>
                   </div>
@@ -245,7 +344,7 @@ export default function App() {
                   <div className="space-y-4">
                     <AnimatePresence mode="popLayout">
                       {sitesOffline.map(site => (
-                        <SiteCard key={site.id} site={site} type="down" />
+                        <SiteCard key={site.id} site={site} type="down" onSelect={() => handleSiteClick(site)} />
                       ))}
                     </AnimatePresence>
                   </div>
@@ -347,7 +446,7 @@ function HeaderStat({ label, value, color }: { label: string, value: number, col
   );
 }
 
-function SiteCard({ site, type }: { site: Site, type: 'up' | 'down', key?: any }) {
+function SiteCard({ site, type, onSelect }: { site: Site, type: 'up' | 'down', key?: any, onSelect: () => void }) {
   const isUp = type === 'up';
 
   return (
@@ -357,7 +456,8 @@ function SiteCard({ site, type }: { site: Site, type: 'up' | 'down', key?: any }
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ scale: 1.01 }}
-      className={`p-4 md:p-6 rounded-2xl bg-white border border-slate-200 flex items-center gap-4 md:gap-6 relative group transition-all shadow-sm ${
+      onClick={onSelect}
+      className={`p-4 md:p-6 rounded-2xl bg-white border border-slate-200 flex items-center gap-4 md:gap-6 relative group transition-all shadow-sm cursor-pointer ${
         isUp ? 'neon-border-green-light border-l-emerald-500' : 'animate-pulse-red-soft border-l-4 border-l-rose-500'
       }`}
     >
