@@ -27,6 +27,7 @@ interface Site {
   ip: string;
   status: 'up' | 'down';
   ultima_verificacao: string;
+  status_desde: string;
   categoria: string;
 }
 
@@ -338,9 +339,11 @@ function SiteCard({ site, type }: { site: Site, type: 'up' | 'down', key?: any }
             <p className="text-xs font-mono text-slate-400 mt-0.5">{site.ip} {site.status === 'down' && <span className="text-rose-500 font-bold ml-1">(TIMEOUT)</span>}</p>
           </div>
           <div className="text-right">
-            <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Última Verificação</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isUp ? 'text-slate-700' : 'text-rose-600 bg-rose-100 animate-pulse'}`}>
-              {isUp ? 'Agora mesmo' : new Date(site.ultima_verificacao).toLocaleTimeString('pt-PT')}
+            <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+              Está {isUp ? 'UP' : 'DOWN'} desde
+            </span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isUp ? 'text-slate-700 bg-slate-100' : 'text-rose-600 bg-rose-100 animate-pulse'}`}>
+              {new Date(site.status_desde || site.ultima_verificacao).toLocaleTimeString('pt-PT')}
             </span>
           </div>
         </div>
