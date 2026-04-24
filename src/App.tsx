@@ -21,7 +21,7 @@ import {
   ChevronDown,
   Map as MapIcon
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Site {
   id: number;
@@ -325,7 +325,7 @@ export default function App() {
               </form>
 
               <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
-                {availableCategories.map(cat => (
+                {(availableCategories || []).map(cat => (
                   <div key={cat.id} className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100 group">
                     <span className="font-bold text-slate-700">{cat.nome}</span>
                     <button 
@@ -365,7 +365,7 @@ export default function App() {
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Categoria</label>
                   <select value={newNode.categoria} onChange={e => setNewNode({...newNode, categoria: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all appearance-none">
-                    {availableCategories.map(cat => (
+                    {(availableCategories || []).map(cat => (
                       <option key={cat.id} value={cat.nome}>{cat.nome}</option>
                     ))}
                   </select>
@@ -542,7 +542,7 @@ export default function App() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden pl-11 space-y-1"
                 >
-                  {categories.map((cat: string) => (
+                  {(categories || []).map((cat: string) => (
                     <button 
                       key={cat}
                       onClick={() => scrollToCategory(cat)}
@@ -613,7 +613,7 @@ export default function App() {
 
         {/* Dashboard View */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-slate-50/50">
-          {categories.map(category => {
+          {(categories || []).map(category => {
             const categorySites = sites.filter(s => (s.categoria || 'Site') === category);
             const sitesOnline = categorySites.filter(s => s.status === 'up');
             const sitesOffline = categorySites.filter(s => s.status === 'down');
