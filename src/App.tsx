@@ -49,6 +49,10 @@ const formatTMRO = (seconds: number) => {
 };
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginForm, setLoginForm] = useState({ user: '', pass: '' });
+  const [loginError, setLoginError] = useState(false);
+  
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState(5);
@@ -62,6 +66,104 @@ export default function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(true);
+
+  // Verificar login ao carregar
+  useEffect(() => {
+    const savedLogin = localStorage.getItem('noc_logged_in');
+    if (savedLogin === 'true') setIsLoggedIn(true);
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loginForm.user === 'NOCng' && loginForm.pass === 'NGnoc') {
+      setIsLoggedIn(true);
+      localStorage.setItem('noc_logged_in', 'true');
+      setLoginError(false);
+    } else {
+      setLoginError(true);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem('noc_logged_in');
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans relative overflow-hidden">
+        {/* Efeitos de Fundo */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]"></div>
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md relative z-10"
+        >
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 md:p-12 rounded-[40px] shadow-2xl">
+            <div className="flex justify-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-tr from-emerald-400 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <Activity className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            
+            <div className="text-center mb-10">
+              <h1 className="text-3xl font-black text-white tracking-tight mb-2">NOC Dashboard</h1>
+              <p className="text-slate-400 font-medium">Autenticação de Sistema Monitoring</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 pl-1">Utilizador</label>
+                <input 
+                  type="text" 
+                  value={loginForm.user}
+                  onChange={e => setLoginForm({...loginForm, user: e.target.value})}
+                  className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-slate-600"
+                  placeholder="Seu utilizador"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 pl-1">Senha</label>
+                <input 
+                  type="password" 
+                  value={loginForm.pass}
+                  onChange={e => setLoginForm({...loginForm, pass: e.target.value})}
+                  className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-slate-600"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+
+              {loginError && (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-xs font-bold flex items-center gap-2"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  Credenciais inválidas. Tente novamente.
+                </motion.div>
+              )}
+
+              <button 
+                type="submit"
+                className="w-full p-4 bg-gradient-to-r from-emerald-500 to-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/20 mt-4"
+              >
+                Entrar no Sistema
+              </button>
+            </form>
+
+            <p className="text-center mt-10 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+              &copy; 2026 Mercury NOC • Secure Access
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   const fetchData = async () => {
     try {
@@ -457,10 +559,13 @@ export default function App() {
             <HelpCircle className="w-5 h-5 text-slate-400" />
             <span className="text-sm font-medium text-slate-600">Suporte</span>
           </div>
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-3">
-            <FileText className="w-5 h-5 text-slate-400" />
-            <span className="text-sm font-medium text-slate-600">Documentação</span>
-          </div>
+          <button 
+            onClick={handleLogout}
+            className="w-full p-4 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 flex items-center gap-3 font-bold hover:bg-rose-100 transition-colors"
+          >
+            <ShieldAlert className="w-5 h-5" />
+            <span>Sair do Sistema</span>
+          </button>
         </div>
       </aside>
 
