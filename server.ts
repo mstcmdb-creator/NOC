@@ -55,32 +55,6 @@ app.get("/api/update-status", async (req, res) => {
     console.log(`MikroTik: Site ${ip} atualizado para ${status}`);
     res.send("OK");
   } catch (err) {
-    res.status(500).send("Erro interno");
-  }
-});
-
-// Novo endpoint para o MikroTik atualizar o status via GET simples
-app.get("/api/update-status", async (req, res) => {
-  const { ip, status } = req.query;
-  
-  if (!ip || !status) {
-    return res.status(400).send("Faltam parâmetros ip e status");
-  }
-
-  try {
-    const { error } = await supabase
-      .from('sites')
-      .update({ status: status as string })
-      .eq('ip', ip as string);
-
-    if (error) {
-      console.error("Erro ao atualizar no Supabase:", error);
-      return res.status(500).send(error.message);
-    }
-
-    console.log(`Status do site ${ip} atualizado para ${status}`);
-    res.send("OK");
-  } catch (err) {
     console.error("Erro interno:", err);
     res.status(500).send("Erro interno");
   }
@@ -101,9 +75,14 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Servidor a correr em http://localhost:${PORT}`);
-  });
+  // Só inicia o listen se não estiver na Vercel
+  if (process.env.NODE_ENV !== "production") {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Servidor a correr em http://localhost:${PORT}`);
+    });
+  }
 }
 
 startServer();
+
+export default app;
