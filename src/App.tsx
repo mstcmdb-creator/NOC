@@ -29,6 +29,7 @@ interface Site {
   ultima_verificacao: string;
   status_desde: string;
   categoria: string;
+  uptime_sla: number;
 }
 
 export default function App() {
@@ -176,18 +177,32 @@ export default function App() {
             const categorySites = sites.filter(s => (s.categoria || 'Site') === category);
             const sitesOnline = categorySites.filter(s => s.status === 'up');
             const sitesOffline = categorySites.filter(s => s.status === 'down');
-            const availability = categorySites.length > 0 
+            
+            // Opção A: Disponibilidade Tempo Real (% de sites online agora)
+            const realTimeAvailability = categorySites.length > 0 
               ? (sitesOnline.length / categorySites.length * 100).toFixed(1) 
               : '0';
 
+            // Opção B: Média de SLA Histórico da Categoria
+            const averageSLA = categorySites.length > 0
+              ? (categorySites.reduce((acc, curr) => acc + (curr.uptime_sla || 0), 0) / categorySites.length).toFixed(2)
+              : '100.00';
+
             return (
               <div key={category} className="space-y-6">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
                   <div className="flex items-center gap-4">
                     <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
-                      <div className={`w-2 h-2 rounded-full ${Number(availability) > 90 ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                      <span className="text-xs font-bold text-slate-600">{availability}% Disponibilidade</span>
+                    <div className="flex gap-2">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">Agora</span>
+                        <div className={`w-1.5 h-1.5 rounded-full ${Number(realTimeAvailability) > 90 ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                        <span className="text-[10px] font-bold text-slate-700">{realTimeAvailability}%</span>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full shadow-sm">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">SLA Real</span>
+                        <span className="text-[10px] font-bold">{averageSLA}%</span>
+                      </div>
                     </div>
                   </div>
                   <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Auto-refresh em {countdown}s</span>
@@ -345,6 +360,10 @@ function SiteCard({ site, type }: { site: Site, type: 'up' | 'down', key?: any }
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isUp ? 'text-slate-700 bg-slate-100' : 'text-rose-600 bg-rose-100 animate-pulse'}`}>
               {new Date(site.status_desde || site.ultima_verificacao).toLocaleTimeString('pt-PT')}
             </span>
+            <div className="mt-2 flex items-center gap-1 justify-end">
+              <span className="text-[8px] font-bold text-slate-300 uppercase">SLA</span>
+              <span className="text-[9px] font-black text-slate-400">{site.uptime_sla?.toFixed(2)}%</span>
+            </div>
           </div>
         </div>
       </div>
