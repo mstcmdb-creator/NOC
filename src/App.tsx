@@ -136,7 +136,7 @@ export default function App() {
               <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">{selectedSite.nome_site}</h3>
-                  <p className="text-sm font-mono text-slate-400 mt-1">{selectedSite.ip} • SLA {selectedSite.uptime_sla.toFixed(2)}%</p>
+                  <p className="text-sm font-mono text-slate-400 mt-1">{selectedSite.ip} • SLA {(selectedSite.uptime_sla || 100).toFixed(2)}%</p>
                 </div>
                 <button 
                   onClick={() => setSelectedSite(null)}
@@ -153,7 +153,7 @@ export default function App() {
                 </div>
 
                 <div className="space-y-4">
-                  {siteLogs.length > 0 ? (
+                  {(siteLogs || []).length > 0 ? (
                     siteLogs.map((log, idx) => (
                       <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-slate-200 transition-all">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
@@ -175,7 +175,7 @@ export default function App() {
                               {new Date(log.changed_at).toLocaleString('pt-PT')}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1">O dispositivo alterou o estado para {log.status.toUpperCase()}.</p>
+                          <p className="text-xs text-slate-500 mt-1">O dispositivo alterou o estado para {(log.status || 'unknown').toUpperCase()}.</p>
                         </div>
                       </div>
                     ))
@@ -191,7 +191,7 @@ export default function App() {
               </div>
 
               <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tempo Médio de Resolução (TMRO): {formatTMRO(selectedSite.tmro_segundos)}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tempo Médio de Resolução (TMRO): {formatTMRO(selectedSite.tmro_segundos || 0)}</span>
               </div>
             </motion.div>
           </div>
