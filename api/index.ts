@@ -102,12 +102,14 @@ app.get("/api/update-status", async (req, res) => {
       }, { onConflict: 'ip' });
 
     if (upsertError) {
-      return res.status(200).send(`ERRO_GRAVACAO: ${upsertError.message} - CODE: ${upsertError.code}`);
+      console.error("Erro no Upsert:", upsertError);
+      return res.status(500).send(`Erro ao gravar dados: ${upsertError.message}`);
     }
 
     res.send("OK");
   } catch (err: any) {
-    res.status(200).send(`ERRO_CRITICO: ${err.message}`);
+    console.error("Erro Crítico:", err);
+    res.status(500).send(`Erro Crítico no Servidor: ${err.message || 'Erro Desconhecido'}`);
   }
 });
 
