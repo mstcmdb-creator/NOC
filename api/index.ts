@@ -47,12 +47,13 @@ app.get("/api/update-status", async (req, res) => {
       }, { onConflict: 'ip' });
 
     if (error) {
-      return res.status(500).send(`Erro Supabase: ${error.message}`);
+      // FORÇAMOS 200 PARA O MIKROTIK MOSTRAR O CORPO DA MENSAGEM
+      return res.status(200).send(`ERRO_DB: ${error.message}`);
     }
 
-    res.send("OK - MÍNIMO FUNCIONAL");
+    res.send("OK_FUNCIONAL");
   } catch (err: any) {
-    res.status(500).send(`Erro Crítico: ${err.message}`);
+    res.status(200).send(`ERRO_CRITICO: ${err.message}`);
   }
 });
 
