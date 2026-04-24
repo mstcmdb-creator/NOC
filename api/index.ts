@@ -132,4 +132,30 @@ app.get("/api/site-logs", async (req, res) => {
   }
 });
 
+// NOVO: Criar site manualmente
+app.post("/api/sites", async (req, res) => {
+  const { nome_site, ip, categoria } = req.body;
+
+  if (!nome_site || !ip) {
+    return res.status(400).send("Nome e IP são obrigatórios");
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('sites')
+      .upsert({ 
+        nome_site, 
+        ip, 
+        categoria: categoria || 'Site',
+        status: 'down', // Começa como down até o primeiro ping
+        ultima_verificacao: new Date().toISOString()
+      }, { onConflict: 'ip' });
+
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).send(err.message);
+  }
+});
+
 export default app;

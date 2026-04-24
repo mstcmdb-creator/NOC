@@ -41,6 +41,8 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [siteLogs, setSiteLogs] = useState<any[]>([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site' });
 
   const formatTMRO = (seconds: number) => {
     if (!seconds || seconds === 0) return '0s';
@@ -64,6 +66,24 @@ export default function App() {
       setCountdown(10);
     } catch (error) {
       console.error("Erro ao procurar dados:", error);
+    }
+  };
+
+  const handleAddNode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/sites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newNode)
+      });
+      if (response.ok) {
+        setIsAddModalOpen(false);
+        setNewNode({ nome_site: '', ip: '', categoria: 'Site' });
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Erro ao criar node:", error);
     }
   };
 
@@ -116,7 +136,42 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* NOVO: Modal de Histórico */}
+      {/* MODAL: Novo Dispositivo */}
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center z-[100] p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden p-8">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-6">Novo Dispositivo</h3>
+              <form onSubmit={handleAddNode} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nome do Site</label>
+                  <input required type="text" value={newNode.nome_site} onChange={e => setNewNode({...newNode, nome_site: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" placeholder="ex: SITE-LUANDA-01" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Endereço IP</label>
+                  <input required type="text" value={newNode.ip} onChange={e => setNewNode({...newNode, ip: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" placeholder="ex: 10.0.0.1" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Categoria</label>
+                  <select value={newNode.categoria} onChange={e => setNewNode({...newNode, categoria: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all appearance-none">
+                    <option value="Site">Site</option>
+                    <option value="Radwin">Radwin</option>
+                    <option value="Clientes">Clientes</option>
+                    <option value="Outras">Outras</option>
+                  </select>
+                </div>
+                <div className="pt-4 flex gap-3">
+                  <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 p-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
+                  <button type="submit" className="flex-1 p-3 bg-black text-white rounded-xl font-bold hover:opacity-90 transition-opacity">Criar Node</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Histórico */}
       <AnimatePresence>
         {selectedSite && (
           <div className="fixed inset-0 flex items-center justify-center z-[100] p-4">
@@ -223,6 +278,14 @@ export default function App() {
         </div>
 
         <nav className="flex-1 px-4 py-8 space-y-1">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="w-full flex items-center gap-3 px-4 py-4 bg-black text-white rounded-2xl mb-8 shadow-xl shadow-black/10 hover:opacity-90 transition-all font-bold text-sm"
+          >
+            <Server className="w-5 h-5" />
+            Novo Dispositivo
+          </button>
+
           <NavItem 
             active={activeTab === 'dashboard'} 
             onClick={() => {
