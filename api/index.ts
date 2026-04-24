@@ -27,17 +27,23 @@ app.get("/api/sites", async (req, res) => {
 
 // ENDPOINT PONTE PARA MIKROTIK
 app.get("/api/update-status", async (req, res) => {
-  const { ip, status } = req.query;
+  const { ip, status, name } = req.query;
   
   if (!ip || !status) {
     return res.status(400).send("Faltam parâmetros ip e status");
   }
 
+  // Se não houver nome, usa o IP como nome
+  const siteName = (name as string) || (ip as string);
+
   try {
     const { error } = await supabase
       .from('sites')
-      .update({ status: status as string })
-      .eq('ip', ip as string);
+      .upsert({ 
+        ip: ip as string, 
+        status: status as string, 
+        nome_site: siteName 
+      }, { onConflict: 'ip' });
 
     if (error) {
       console.error("Erro no Supabase:", error);
