@@ -87,7 +87,7 @@ app.get("/api/update-status", async (req, res) => {
       .from('sites')
       .upsert({ 
         ip: ip as string, 
-        status: status as string, 
+        status: String(status).toLowerCase(), 
         nome_site: name as string || oldSite?.nome_site || (ip as string),
         categoria: category as string || oldSite?.categoria || 'Site',
         tempo_total_segundos: tempoTotal,
@@ -101,12 +101,13 @@ app.get("/api/update-status", async (req, res) => {
       }, { onConflict: 'ip' });
 
     if (upsertError) {
-      return res.status(500).send(`Erro ao gravar dados: ${upsertError.message}`);
+      // MANDAMOS O ERRO REAL PARA O MIKROTIK VER
+      return res.status(200).send(`ERRO_GRAVACAO: ${upsertError.message} - CODE: ${upsertError.code}`);
     }
 
     res.send("OK");
   } catch (err: any) {
-    res.status(500).send(`Erro Crítico: ${err.message}`);
+    res.status(200).send(`ERRO_CRITICO: ${err.message}`);
   }
 });
 
