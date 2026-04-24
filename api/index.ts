@@ -38,13 +38,14 @@ app.get("/api/update-status", async (req, res) => {
     // 1. Buscar dados atuais para calcular o tempo passado
     const { data: oldSite } = await supabase
       .from('sites')
-      .maybeSingle()
-      .eq('ip', ip as string);
+      .select('*')
+      .eq('ip', ip as string)
+      .maybeSingle();
 
-    let tempoTotal = oldSite?.tempo_total_segundos || 0;
-    let tempoOnline = oldSite?.tempo_online_segundos || 0;
+    let tempoTotal = Number(oldSite?.tempo_total_segundos) || 0;
+    let tempoOnline = Number(oldSite?.tempo_online_segundos) || 0;
 
-    if (oldSite && oldSite.ultima_verificacao) {
+    if (oldSite?.ultima_verificacao) {
       const agora = new Date();
       const ultima = new Date(oldSite.ultima_verificacao);
       const deltaSegundos = Math.floor((agora.getTime() - ultima.getTime()) / 1000);
