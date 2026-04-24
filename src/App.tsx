@@ -102,9 +102,14 @@ export default function App() {
         setIsAddModalOpen(false);
         setNewNode({ nome_site: '', ip: '', categoria: availableCategories[0]?.nome || 'Site', descricao: '' });
         fetchData();
+        alert('Dispositivo criado com sucesso! ✨');
+      } else {
+        const errorText = await response.text();
+        alert(`Erro ao criar: ${errorText}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao criar node:", error);
+      alert(`Erro crítico: ${error.message}`);
     }
   };
 
