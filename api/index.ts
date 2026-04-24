@@ -139,6 +139,33 @@ app.get("/api/site-logs", async (req, res) => {
   }
 });
 
+// NOVO: Todos os logs do sistema (Histórico Global)
+app.get("/api/all-logs", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('status_history')
+      .select(`
+        id,
+        site_ip,
+        status,
+        changed_at,
+        sites (
+          nome_site
+        )
+      `)
+      .order('changed_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error("Erro ao buscar logs globais:", error);
+      return res.status(500).json([]);
+    }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json([]);
+  }
+});
+
 // NOVO: Criar site manualmente
 app.post("/api/sites", async (req, res) => {
   const { nome_site, ip, categoria, descricao } = req.body;

@@ -62,6 +62,7 @@ export default function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(true);
+  const [globalLogs, setGlobalLogs] = useState<any[]>([]);
 
   const fetchData = async () => {
     try {
@@ -72,6 +73,7 @@ export default function App() {
         (a.nome_site || '').localeCompare(b.nome_site || '')
       );
       setSites(sortedData);
+      fetchGlobalLogs(); // Atualizar logs reais
       setLoading(false);
       setCountdown(5);
     } catch (error) {
@@ -86,6 +88,16 @@ export default function App() {
       setAvailableCategories(data);
     } catch (error) {
       console.error("Erro ao buscar categorias:", error);
+    }
+  };
+
+  const fetchGlobalLogs = async () => {
+    try {
+      const response = await fetch('/api/all-logs');
+      const data = await response.json();
+      setGlobalLogs(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar logs globais:", error);
     }
   };
 
@@ -176,6 +188,7 @@ export default function App() {
   useEffect(() => {
     fetchData();
     fetchCategories();
+    fetchGlobalLogs();
     const interval = setInterval(() => {
       fetchData();
     }, 5000);
@@ -603,16 +616,31 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  <LogRow time="2023-11-24 14:30:12" device="CORE-SWITCH-LUA-01" event="VLAN 100 Port 24 Down" status="CRITICAL" color="rose" user="System" />
-                  <LogRow time="2023-11-24 14:28:45" device="FIREWALL-CAB-02" event="Login success via SSH" status="INFO" color="emerald" user="admin" />
-                  <LogRow time="2023-11-24 14:25:01" device="SITE-LUB-12" event="SNMP Polling Timeout" status="DOWN" color="rose" user="SNMP" />
-                  <LogRow time="2023-11-24 14:20:10" device="HUB-BENG-04" event="Interface Gigabit0/1 Recovered" status="UP" color="emerald" user="System" />
+                  {globalLogs.length > 0 ? (
+                    globalLogs.map((log) => (
+                      <LogRow 
+                        key={log.id}
+                        time={new Date(log.changed_at).toLocaleString('pt-PT')}
+                        device={log.sites?.nome_site || log.site_ip}
+                        event={log.status === 'up' ? 'Conexão Restaurada' : 'Queda de Conexão'}
+                        status={log.status === 'up' ? 'ONLINE' : 'OFFLINE'}
+                        color={log.status === 'up' ? 'emerald' : 'rose'}
+                        user="MikroTik"
+                      />
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-sm italic">
+                        Nenhum log registado recentemente.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white">
-              <span className="hidden sm:inline">Mostrando 4 de 1.458 logs</span>
-              <span className="sm:hidden">4 logs</span>
+              <span className="hidden sm:inline">Mostrando {globalLogs.length} logs recentes</span>
+              <span className="sm:hidden">{globalLogs.length} logs</span>
               <div className="flex gap-4 items-center">
                 <button className="p-1 hover:bg-slate-50 rounded"><ChevronRight className="w-4 h-4 rotate-180" /></button>
                 <button className="p-1 hover:bg-slate-50 rounded"><ChevronRight className="w-4 h-4" /></button>
