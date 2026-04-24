@@ -31,6 +31,8 @@ interface Site {
 
 export default function App() {
   const [sites, setSites] = useState<Site[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [countdown, setCountdown] = useState(10);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
