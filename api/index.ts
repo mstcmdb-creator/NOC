@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import "dotenv/config";
 
 const app = express();
+app.use(express.json());
 
 const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
