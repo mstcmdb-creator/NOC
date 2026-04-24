@@ -190,7 +190,7 @@ export default function App() {
                       <span className="text-xs font-bold text-slate-600">{availability}% Disponibilidade</span>
                     </div>
                   </div>
-                  <span className="text-xs text-slate-400 font-medium">Auto-refresh em {countdown}s</span>
+                  <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Auto-refresh em {countdown}s</span>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
