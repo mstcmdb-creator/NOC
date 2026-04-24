@@ -19,7 +19,6 @@ import {
   FileText,
   Trash2,
   ChevronDown,
-  ChevronRight,
   Map as MapIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -36,10 +35,23 @@ interface Site {
   tmro_segundos: number;
 }
 
+const formatTMRO = (seconds: number) => {
+  if (!seconds || seconds === 0) return '0s';
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.round(seconds % 60);
+    return `${mins}m ${secs}s`;
+  }
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return `${hrs}h ${mins}m`;
+};
+
 export default function App() {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
@@ -50,19 +62,6 @@ export default function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(true);
-
-  const formatTMRO = (seconds: number) => {
-    if (!seconds || seconds === 0) return '0s';
-    if (seconds < 60) return `${Math.round(seconds)}s`;
-    if (seconds < 3600) {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.round(seconds % 60);
-      return `${mins}m ${secs}s`;
-    }
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return `${hrs}h ${mins}m`;
-  };
 
   const fetchData = async () => {
     try {
@@ -434,7 +433,7 @@ export default function App() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden pl-11 space-y-1"
                 >
-                  {categories.map(cat => (
+                  {categories.map((cat: string) => (
                     <button 
                       key={cat}
                       onClick={() => scrollToCategory(cat)}
@@ -640,17 +639,17 @@ function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNo
   );
 }
 
-function HeaderStat({ label, value, color }: { label: string, value: number, color?: 'emerald' | 'rose' }) {
+function HeaderStat({ label, value, color = 'default', className = "" }: { label: string; value: number; color?: 'emerald' | 'rose' | 'default'; className?: string }) {
   const colors = {
-    emerald: 'text-emerald-500',
-    rose: 'text-rose-600',
+    emerald: 'text-emerald-500 bg-emerald-50',
+    rose: 'text-rose-500 bg-rose-50',
     default: 'text-slate-900'
   };
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex flex-col gap-1 ${className}`}>
       <span className="text-[10px] font-bold text-slate-400 tracking-widest">{label}</span>
-      <span className={`text-2xl font-black ${color ? colors[color] : colors.default}`}>{value.toLocaleString('pt-PT')}</span>
+      <span className={`text-2xl font-black ${colors[color]}`}>{value.toLocaleString('pt-PT')}</span>
     </div>
   );
 }
