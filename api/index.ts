@@ -34,27 +34,8 @@ app.get("/api/update-status", async (req, res) => {
     return res.status(400).send("Faltam parâmetros ip e status");
   }
 
-  try {
-    // Apenas um upsert básico sem cálculos para testar a ligação
-    const { error } = await supabase
-      .from('sites')
-      .upsert({ 
-        ip: ip as string, 
-        status: status as string, 
-        nome_site: name as string || (ip as string),
-        categoria: category as string || 'Site',
-        ultima_verificacao: new Date().toISOString()
-      }, { onConflict: 'ip' });
-
-    if (error) {
-      // FORÇAMOS 200 PARA O MIKROTIK MOSTRAR O CORPO DA MENSAGEM
-      return res.status(200).send(`ERRO_DB: ${error.message}`);
-    }
-
-    res.send("OK_FUNCIONAL");
-  } catch (err: any) {
-    res.status(200).send(`ERRO_CRITICO: ${err.message}`);
-  }
+  // TESTE DE ROTA (SEM BASE DE DADOS)
+  return res.status(200).send("ROTA_OK");
 });
 
 // NOVO ENDPOINT: Histórico de um site específico
