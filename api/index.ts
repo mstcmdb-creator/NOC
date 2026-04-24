@@ -26,7 +26,7 @@ app.get("/api/sites", async (req, res) => {
   }
 });
 
-// ENDPOINT PONTE PARA MIKROTIK
+// ENDPOINT PONTE PARA MIKROTIK (VERSÃO ULTRA-SIMPLIFICADA PARA DEBUG)
 app.get("/api/update-status", async (req, res) => {
   const { ip, status, name, category } = req.query;
   
@@ -35,80 +35,24 @@ app.get("/api/update-status", async (req, res) => {
   }
 
   try {
-    // 1. Buscar dados atuais para calcular o tempo passado
-    const { data: oldSite, error: fetchError } = await supabase
-      .from('sites')
-      .select('*')
-      .eq('ip', ip as string)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error("Erro ao procurar site:", fetchError);
-      return res.status(500).send(`Erro ao procurar site: ${fetchError.message}`);
-    }
-
-    let tempoTotal = Number(oldSite?.tempo_total_segundos || 0);
-    let tempoOnline = Number(oldSite?.tempo_online_segundos || 0);
-    let totalIncidentes = Number(oldSite?.total_incidentes_resolvidos || 0);
-    let totalTempoResolucao = Number(oldSite?.total_tempo_resolucao_segundos || 0);
-    let tmroSegundos = Number(oldSite?.tmro_segundos || 0);
-
-    if (oldSite?.ultima_verificacao) {
-      const agora = new Date();
-      const ultima = new Date(oldSite.ultima_verificacao);
-      const deltaSegundos = Math.floor((agora.getTime() - ultima.getTime()) / 1000);
-
-      // Apenas conta se o intervalo for razoável (evita saltos se o sistema esteve parado)
-      if (deltaSegundos > 0 && deltaSegundos < 3600) {
-        tempoTotal += deltaSegundos;
-        if (oldSite.status === 'up') {
-          tempoOnline += deltaSegundos;
-        }
-      }
-    }
-
-    const uptimeSLA = tempoTotal > 0 ? parseFloat((tempoOnline / tempoTotal * 100).toFixed(2)) : 100.0;
-
-    // DETEÇÃO DE RESOLUÇÃO (Passou de DOWN para UP)
-    if (oldSite?.status === 'down' && status === 'up') {
-      const agora = new Date();
-      const caiuEm = new Date(oldSite?.status_desde || oldSite?.ultima_verificacao || agora.toISOString());
-      const tempoFalha = Math.floor((agora.getTime() - caiuEm.getTime()) / 1000);
-
-      if (tempoFalha > 0) {
-        totalIncidentes += 1;
-        totalTempoResolucao += tempoFalha;
-        tmroSegundos = parseFloat((totalTempoResolucao / totalIncidentes).toFixed(1));
-      }
-    }
-
-    // 2. Gravar novos dados com métricas de SLA e TMRO
-    const { error: upsertError } = await supabase
+    // Apenas um upsert básico sem cálculos para testar a ligação
+    const { error } = await supabase
       .from('sites')
       .upsert({ 
         ip: ip as string, 
         status: status as string, 
-        nome_site: name as string || oldSite?.nome_site || (ip as string),
-        categoria: category as string || oldSite?.categoria || 'Site',
-        tempo_total_segundos: tempoTotal,
-        tempo_online_segundos: tempoOnline,
-        uptime_sla: uptimeSLA,
-        total_incidentes_resolvidos: totalIncidentes,
-        total_tempo_resolucao_segundos: totalTempoResolucao,
-        tmro_segundos: tmroSegundos,
-        status_desde: (status !== oldSite?.status) ? new Date().toISOString() : (oldSite?.status_desde || new Date().toISOString()),
+        nome_site: name as string || (ip as string),
+        categoria: category as string || 'Site',
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
 
-    if (upsertError) {
-      console.error("Erro no Upsert:", upsertError);
-      return res.status(500).send(`Erro ao gravar dados: ${upsertError.message}`);
+    if (error) {
+      return res.status(500).send(`Erro Supabase: ${error.message}`);
     }
 
-    res.send("OK");
+    res.send("OK - MÍNIMO FUNCIONAL");
   } catch (err: any) {
-    console.error("Erro Crítico:", err);
-    res.status(500).send(`Erro Crítico no Servidor: ${err.message || 'Erro Desconhecido'}`);
+    res.status(500).send(`Erro Crítico: ${err.message}`);
   }
 });
 
