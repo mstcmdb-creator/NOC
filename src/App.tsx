@@ -89,6 +89,8 @@ export default function App() {
     localStorage.removeItem('noc_logged_in');
   };
 
+  const categories = Array.from(new Set(sites.map(s => s.categoria || 'Site')));
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans relative overflow-hidden">
@@ -224,6 +226,7 @@ export default function App() {
       });
       if (response.ok) {
         setNewCategoryName('');
+        setIsCategoryModalOpen(false);
         fetchCategories();
       }
     } catch (error) {
