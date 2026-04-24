@@ -36,14 +36,22 @@ app.get("/api/update-status", async (req, res) => {
 
   try {
     // 1. Buscar dados atuais para calcular o tempo passado
-    const { data: oldSite } = await supabase
+    const { data: oldSite, error: fetchError } = await supabase
       .from('sites')
       .select('*')
       .eq('ip', ip as string)
       .maybeSingle();
 
-    let tempoTotal = Number(oldSite?.tempo_total_segundos) || 0;
-    let tempoOnline = Number(oldSite?.tempo_online_segundos) || 0;
+    if (fetchError) {
+      console.error("Erro ao procurar site:", fetchError);
+      return res.status(500).send(`Erro ao procurar site: ${fetchError.message}`);
+    }
+
+    let tempoTotal = Number(oldSite?.tempo_total_segundos || 0);
+    let tempoOnline = Number(oldSite?.tempo_online_segundos || 0);
+    let totalIncidentes = Number(oldSite?.total_incidentes_resolvidos || 0);
+    let totalTempoResolucao = Number(oldSite?.total_tempo_resolucao_segundos || 0);
+    let tmroSegundos = Number(oldSite?.tmro_segundos || 0);
 
     if (oldSite?.ultima_verificacao) {
       const agora = new Date();
@@ -61,10 +69,6 @@ app.get("/api/update-status", async (req, res) => {
 
     const uptimeSLA = tempoTotal > 0 ? parseFloat((tempoOnline / tempoTotal * 100).toFixed(2)) : 100.0;
 
-    let totalIncidentes = oldSite?.total_incidentes_resolvidos || 0;
-    let totalTempoResolucao = oldSite?.total_tempo_resolucao_segundos || 0;
-    let tmroSegundos = oldSite?.tmro_segundos || 0;
-
     // DETEÇÃO DE RESOLUÇÃO (Passou de DOWN para UP)
     if (oldSite?.status === 'down' && status === 'up') {
       const agora = new Date();
@@ -79,7 +83,7 @@ app.get("/api/update-status", async (req, res) => {
     }
 
     // 2. Gravar novos dados com métricas de SLA e TMRO
-    const { error } = await supabase
+    const { error: upsertError } = await supabase
       .from('sites')
       .upsert({ 
         ip: ip as string, 
@@ -96,15 +100,15 @@ app.get("/api/update-status", async (req, res) => {
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
 
-    if (error) {
-      console.error("Erro no Supabase:", error);
-      return res.status(500).send(error.message);
+    if (upsertError) {
+      console.error("Erro no Upsert:", upsertError);
+      return res.status(500).send(`Erro ao gravar dados: ${upsertError.message}`);
     }
 
     res.send("OK");
-  } catch (err) {
-    console.error("Erro interno:", err);
-    res.status(500).send("Erro interno");
+  } catch (err: any) {
+    console.error("Erro Crítico:", err);
+    res.status(500).send(`Erro Crítico no Servidor: ${err.message || 'Erro Desconhecido'}`);
   }
 });
 
