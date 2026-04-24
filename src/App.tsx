@@ -68,9 +68,13 @@ export default function App() {
     try {
       const response = await fetch('/api/sites');
       const data = await response.json();
-      setSites(data);
+      // Ordena por nome do site para manter a tabela organizada
+      const sortedData = (data || []).sort((a: Site, b: Site) => 
+        (a.nome_site || '').localeCompare(b.nome_site || '')
+      );
+      setSites(sortedData);
       setLoading(false);
-      setCountdown(10);
+      setCountdown(5);
     } catch (error) {
       console.error("Erro ao procurar dados:", error);
     }
@@ -170,10 +174,10 @@ export default function App() {
     fetchCategories();
     const interval = setInterval(() => {
       fetchData();
-    }, 10000);
+    }, 5000);
 
     const timer = setInterval(() => {
-      setCountdown(prev => (prev > 0 ? prev - 1 : 10));
+      setCountdown(prev => (prev > 0 ? prev - 1 : 5));
     }, 1000);
 
     return () => {
