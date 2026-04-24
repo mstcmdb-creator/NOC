@@ -72,7 +72,7 @@ app.get("/api/update-status", async (req, res) => {
     // DETEÇÃO DE RESOLUÇÃO (Passou de DOWN para UP)
     if (oldSite?.status === 'down' && status === 'up') {
       const agora = new Date();
-      const caiuEm = new Date(oldSite.status_desde || oldSite.ultima_verificacao);
+      const caiuEm = new Date(oldSite?.status_desde || oldSite?.ultima_verificacao || agora.toISOString());
       const tempoFalha = Math.floor((agora.getTime() - caiuEm.getTime()) / 1000);
 
       if (tempoFalha > 0) {
