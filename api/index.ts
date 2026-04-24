@@ -34,8 +34,27 @@ app.get("/api/update-status", async (req, res) => {
     return res.status(400).send("Faltam parâmetros ip e status");
   }
 
-  // TESTE DE ROTA (SEM BASE DE DADOS)
-  return res.status(200).send("ROTA_OK");
+  try {
+    // 1. Tentar gravar na base de dados
+    const { error } = await supabase
+      .from('sites')
+      .upsert({ 
+        ip: ip as string, 
+        status: status as string, 
+        nome_site: name as string || (ip as string),
+        categoria: category as string || 'Site',
+        ultima_verificacao: new Date().toISOString()
+      }, { onConflict: 'ip' });
+
+    if (error) {
+      // Se houver erro no Supabase, mandamos para o MikroTik ver
+      return res.status(200).send(`ERRO_DB: ${error.message} - CODE: ${error.code}`);
+    }
+
+    return res.status(200).send("DB_SUCESSO_OK");
+  } catch (err: any) {
+    return res.status(200).send(`ERRO_CATCH: ${err.message}`);
+  }
 });
 
 // NOVO ENDPOINT: Histórico de um site específico
