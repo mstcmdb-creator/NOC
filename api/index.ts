@@ -60,7 +60,24 @@ app.get("/api/update-status", async (req, res) => {
 
     const uptimeSLA = tempoTotal > 0 ? parseFloat((tempoOnline / tempoTotal * 100).toFixed(2)) : 100.0;
 
-    // 2. Gravar novos dados com métricas de SLA
+    let totalIncidentes = oldSite?.total_incidentes_resolvidos || 0;
+    let totalTempoResolucao = oldSite?.total_tempo_resolucao_segundos || 0;
+    let tmroSegundos = oldSite?.tmro_segundos || 0;
+
+    // DETEÇÃO DE RESOLUÇÃO (Passou de DOWN para UP)
+    if (oldSite?.status === 'down' && status === 'up') {
+      const agora = new Date();
+      const caiuEm = new Date(oldSite.status_desde || oldSite.ultima_verificacao);
+      const tempoFalha = Math.floor((agora.getTime() - caiuEm.getTime()) / 1000);
+
+      if (tempoFalha > 0) {
+        totalIncidentes += 1;
+        totalTempoResolucao += tempoFalha;
+        tmroSegundos = parseFloat((totalTempoResolucao / totalIncidentes).toFixed(1));
+      }
+    }
+
+    // 2. Gravar novos dados com métricas de SLA e TMRO
     const { error } = await supabase
       .from('sites')
       .upsert({ 
@@ -71,6 +88,9 @@ app.get("/api/update-status", async (req, res) => {
         tempo_total_segundos: tempoTotal,
         tempo_online_segundos: tempoOnline,
         uptime_sla: uptimeSLA,
+        total_incidentes_resolvidos: totalIncidentes,
+        total_tempo_resolucao_segundos: totalTempoResolucao,
+        tmro_segundos: tmroSegundos,
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
 

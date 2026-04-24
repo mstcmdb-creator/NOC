@@ -30,6 +30,7 @@ interface Site {
   status_desde: string;
   categoria: string;
   uptime_sla: number;
+  tmro_segundos: number;
 }
 
 export default function App() {
@@ -38,6 +39,19 @@ export default function App() {
   const [countdown, setCountdown] = useState(10);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const formatTMRO = (seconds: number) => {
+    if (!seconds || seconds === 0) return '0s';
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    if (seconds < 3600) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.round(seconds % 60);
+      return `${mins}m ${secs}s`;
+    }
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hrs}h ${mins}m`;
+  };
 
   const fetchData = async () => {
     try {
@@ -188,12 +202,17 @@ export default function App() {
               ? (categorySites.reduce((acc, curr) => acc + (curr.uptime_sla || 0), 0) / categorySites.length).toFixed(2)
               : '100.00';
 
+            // TMRO Médio da Categoria
+            const averageTMRO = categorySites.length > 0
+              ? categorySites.reduce((acc, curr) => acc + (curr.tmro_segundos || 0), 0) / categorySites.length
+              : 0;
+
             return (
               <div key={category} className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
                   <div className="flex items-center gap-4">
                     <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
                         <span className="text-[9px] font-bold text-slate-400 uppercase">Agora</span>
                         <div className={`w-1.5 h-1.5 rounded-full ${Number(realTimeAvailability) > 90 ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
@@ -202,6 +221,10 @@ export default function App() {
                       <div className="flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full shadow-sm">
                         <span className="text-[9px] font-bold text-slate-400 uppercase">SLA Real</span>
                         <span className="text-[10px] font-bold">{averageSLA}%</span>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-100 text-blue-700 rounded-full shadow-sm">
+                        <span className="text-[9px] font-bold text-blue-400 uppercase">TMRO</span>
+                        <span className="text-[10px] font-bold">{formatTMRO(averageTMRO)}</span>
                       </div>
                     </div>
                   </div>
@@ -360,9 +383,17 @@ function SiteCard({ site, type }: { site: Site, type: 'up' | 'down', key?: any }
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isUp ? 'text-slate-700 bg-slate-100' : 'text-rose-600 bg-rose-100 animate-pulse'}`}>
               {new Date(site.status_desde || site.ultima_verificacao).toLocaleTimeString('pt-PT')}
             </span>
-            <div className="mt-2 flex items-center gap-1 justify-end">
-              <span className="text-[8px] font-bold text-slate-300 uppercase">SLA</span>
-              <span className="text-[9px] font-black text-slate-400">{site.uptime_sla?.toFixed(2)}%</span>
+            <div className="mt-2 flex flex-col items-end gap-1">
+              <div className="flex items-center gap-1">
+                <span className="text-[8px] font-bold text-slate-300 uppercase">SLA</span>
+                <span className="text-[9px] font-black text-slate-400">{site.uptime_sla?.toFixed(2)}%</span>
+              </div>
+              {site.tmro_segundos > 0 && (
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] font-bold text-blue-200 uppercase tracking-tighter">TMRO</span>
+                  <span className="text-[9px] font-black text-blue-400">{formatTMRO(site.tmro_segundos)}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
