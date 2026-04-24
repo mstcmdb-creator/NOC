@@ -29,8 +29,9 @@ app.get("/api/sites", async (req, res) => {
 // ENDPOINT PONTE PARA MIKROTIK (VERSÃO ULTRA-SIMPLIFICADA PARA DEBUG)
 app.get("/api/update-status", async (req, res) => {
   const { ip, status, name, category } = req.query;
+  const cleanIp = String(ip).trim();
   
-  if (!ip || !status) {
+  if (!cleanIp || !status) {
     return res.status(400).send("Faltam parâmetros ip e status");
   }
 
@@ -39,7 +40,7 @@ app.get("/api/update-status", async (req, res) => {
     const { data: oldSite, error: fetchError } = await supabase
       .from('sites')
       .select('*')
-      .eq('ip', ip as string)
+      .eq('ip', cleanIp)
       .maybeSingle();
 
     if (fetchError) {
@@ -86,7 +87,7 @@ app.get("/api/update-status", async (req, res) => {
     const { error: upsertError } = await supabase
       .from('sites')
       .upsert({ 
-        ip: ip as string, 
+        ip: cleanIp, 
         status: String(status).toLowerCase(), 
         nome_site: name as string || oldSite?.nome_site || (ip as string),
         categoria: category as string || oldSite?.categoria || 'Site',
@@ -141,8 +142,9 @@ app.get("/api/site-logs", async (req, res) => {
 // NOVO: Criar site manualmente
 app.post("/api/sites", async (req, res) => {
   const { nome_site, ip, categoria, descricao } = req.body;
+  const cleanIp = String(ip).trim();
 
-  if (!nome_site || !ip) {
+  if (!nome_site || !cleanIp) {
     return res.status(400).send("Nome e IP são obrigatórios");
   }
 
@@ -151,7 +153,7 @@ app.post("/api/sites", async (req, res) => {
       .from('sites')
       .upsert({ 
         nome_site, 
-        ip, 
+        ip: cleanIp, 
         categoria: categoria || 'Site',
         descricao: descricao || '',
         status: 'down', // Começa como down até o primeiro ping
