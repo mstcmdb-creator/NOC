@@ -391,25 +391,6 @@ export default function App() {
             </div>
           </section>
         </main>
-
-        {/* Floating Map Placeholder (Bottom Right) - Hidden on very small screens, smaller on mobile */}
-        <div className="fixed sm:absolute bottom-4 sm:bottom-8 right-4 sm:right-8 z-30 hidden xs:block">
-          <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-2xl border border-slate-200 w-48 sm:w-64 space-y-2 sm:space-y-3">
-            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Localização dos Nodes</span>
-            <div className="h-24 sm:h-32 bg-slate-100 rounded-xl overflow-hidden relative group">
-              <img 
-                src="https://api.dicebear.com/7.x/initials/svg?seed=MAP" 
-                alt="Map Placeholder" 
-                className="w-full h-full object-cover opacity-30 saturate-0"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center">
-                <button className="bg-white text-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold shadow-lg">VER MAPA</button>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent"></div>
-              <Activity className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 w-4 h-4 sm:w-6 sm:h-6 text-emerald-400 opacity-80" />
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
