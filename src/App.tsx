@@ -613,7 +613,20 @@ export default function App() {
 
         {/* Dashboard View */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-slate-50/50">
+          {!loading && (categories || []).length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                <Globe className="w-10 h-10 text-slate-300" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">Nenhum dispositivo encontrado</h3>
+              <p className="text-slate-500 mt-2 max-w-sm">
+                Adicione o seu primeiro site usando o botão "Novo Dispositivo" na barra lateral.
+              </p>
+            </div>
+          )}
+
           {(categories || []).map(category => {
+            if (!category) return null;
             const categorySites = sites.filter(s => (s.categoria || 'Site') === category);
             const sitesOnline = categorySites.filter(s => s.status === 'up');
             const sitesOffline = categorySites.filter(s => s.status === 'down');
@@ -745,7 +758,9 @@ function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNo
         : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
       }`}
     >
-      {React.cloneElement(icon as React.ReactElement, { className: active ? 'w-5 h-5 text-white' : 'w-5 h-5 text-slate-400' })}
+      <span className={active ? 'text-white' : 'text-slate-400'}>
+        {icon}
+      </span>
       {label}
     </button>
   );
