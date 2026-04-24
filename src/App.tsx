@@ -18,6 +18,8 @@ import {
   HelpCircle,
   FileText,
   Trash2,
+  ChevronDown,
+  ChevronRight,
   Map as MapIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -43,10 +45,11 @@ export default function App() {
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [siteLogs, setSiteLogs] = useState<any[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site' });
+  const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '' });
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [isDashboardExpanded, setIsDashboardExpanded] = useState(true);
 
   const formatTMRO = (seconds: number) => {
     if (!seconds || seconds === 0) return '0s';
@@ -93,7 +96,7 @@ export default function App() {
       });
       if (response.ok) {
         setIsAddModalOpen(false);
-        setNewNode({ nome_site: '', ip: '', categoria: availableCategories[0]?.nome || 'Site' });
+        setNewNode({ nome_site: '', ip: '', categoria: availableCategories[0]?.nome || 'Site', descricao: '' });
         fetchData();
       }
     } catch (error) {
@@ -152,6 +155,14 @@ export default function App() {
   const handleSiteClick = (site: Site) => {
     setSelectedSite(site);
     fetchSiteLogs(site.ip);
+  };
+
+  const scrollToCategory = (category: string) => {
+    const element = document.getElementById(`category-${category}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      setIsMobileMenuOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -248,6 +259,10 @@ export default function App() {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Descrição Técnico / Observações</label>
+                  <textarea value={newNode.descricao} onChange={e => setNewNode({...newNode, descricao: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all h-24 resize-none" placeholder="ex: No 3º andar, Rack B, Porta 15..." />
+                </div>
                 <div className="pt-4 flex gap-3">
                   <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 p-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
                   <button type="submit" className="flex-1 p-3 bg-black text-white rounded-xl font-bold hover:opacity-90 transition-opacity">Criar Node</button>
@@ -289,6 +304,13 @@ export default function App() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                {selectedSite.descricao && (
+                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest block mb-1">Descrição / Notas</span>
+                    <p className="text-sm text-blue-700 leading-relaxed font-medium">{selectedSite.descricao}</p>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="w-4 h-4 text-slate-400" />
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Histórico de Eventos</span>
@@ -381,15 +403,42 @@ export default function App() {
             Gerir Categorias
           </button>
 
-          <NavItem 
-            active={activeTab === 'dashboard'} 
-            onClick={() => {
-              setActiveTab('dashboard');
-              setIsMobileMenuOpen(false);
-            }} 
-            icon={<LayoutDashboard className="w-5 h-5" />} 
-            label="Dashboard" 
-          />
+          <div className="space-y-1">
+            <button 
+              onClick={() => setIsDashboardExpanded(!isDashboardExpanded)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all font-bold text-sm ${
+                activeTab === 'dashboard' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <LayoutDashboard className="w-5 h-5" />
+                <span>Dashboard</span>
+              </div>
+              {isDashboardExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+
+            <AnimatePresence>
+              {isDashboardExpanded && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden pl-11 space-y-1"
+                >
+                  {categories.map(cat => (
+                    <button 
+                      key={cat}
+                      onClick={() => scrollToCategory(cat)}
+                      className="w-full text-left py-2 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-wider"
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <NavItem icon={<Monitor className="w-5 h-5" />} label="Dispositivos" />
           <NavItem icon={<ShieldAlert className="w-5 h-5" />} label="Alertas" />
           <NavItem icon={<Settings className="w-5 h-5" />} label="Definições" />
@@ -465,7 +514,7 @@ export default function App() {
               : 0;
 
             return (
-              <div key={category} className="space-y-6">
+              <div key={category} id={`category-${category}`} className="space-y-6 pt-8 first:pt-0">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
                   <div className="flex items-center gap-4">
                     <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>

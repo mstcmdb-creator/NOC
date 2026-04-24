@@ -135,7 +135,7 @@ app.get("/api/site-logs", async (req, res) => {
 
 // NOVO: Criar site manualmente
 app.post("/api/sites", async (req, res) => {
-  const { nome_site, ip, categoria } = req.body;
+  const { nome_site, ip, categoria, descricao } = req.body;
 
   if (!nome_site || !ip) {
     return res.status(400).send("Nome e IP são obrigatórios");
@@ -148,6 +148,7 @@ app.post("/api/sites", async (req, res) => {
         nome_site, 
         ip, 
         categoria: categoria || 'Site',
+        descricao: descricao || '',
         status: 'down', // Começa como down até o primeiro ping
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
