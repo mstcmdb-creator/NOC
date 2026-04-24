@@ -27,6 +27,7 @@ interface Site {
   ip: string;
   status: 'up' | 'down';
   ultima_verificacao: string;
+  categoria: string;
 }
 
 export default function App() {
@@ -64,8 +65,8 @@ export default function App() {
     };
   }, []);
 
-  const sitesOnline = sites.filter(s => s.status === 'up');
-  const sitesOffline = sites.filter(s => s.status === 'down');
+  // Agrupar sites por categoria
+  const categories = Array.from(new Set(sites.map(s => s.categoria || 'Site')));
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
@@ -146,9 +147,9 @@ export default function App() {
             </button>
             <HeaderStat label="TOTAL" value={sites.length} />
             <div className="w-px h-8 bg-slate-200 shrink-0"></div>
-            <HeaderStat label="ONLINE" value={sitesOnline.length} color="emerald" />
+            <HeaderStat label="ONLINE" value={sites.filter(s => s.status === 'up').length} color="emerald" />
             <div className="w-px h-8 bg-slate-200 shrink-0 hidden sm:block"></div>
-            <HeaderStat label="OFFLINE" value={sitesOffline.length} color="rose" className="hidden sm:flex" />
+            <HeaderStat label="OFFLINE" value={sites.filter(s => s.status === 'down').length} color="rose" className="hidden sm:flex" />
           </div>
 
           <div className="flex items-center gap-2 md:gap-6">
@@ -169,47 +170,50 @@ export default function App() {
         </header>
 
         {/* Dashboard View */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 bg-slate-50/50">
-          {/* Sites Division Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column: UP Sites */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-bold text-slate-800 tracking-tight text-lg uppercase">Sites Online</h3>
-                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded uppercase tracking-wider">Estável</span>
-                </div>
-                <span className="text-xs text-slate-400 font-medium">Auto-refresh em {countdown}s</span>
-              </div>
-              
-              <div className="space-y-4">
-                <AnimatePresence mode="popLayout">
-                  {sitesOnline.map(site => (
-                    <SiteCard key={site.id} site={site} type="up" />
-                  ))}
-                </AnimatePresence>
-              </div>
-            </div>
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-slate-50/50">
+          {categories.map(category => {
+            const categorySites = sites.filter(s => (s.categoria || 'Site') === category);
+            const sitesOnline = categorySites.filter(s => s.status === 'up');
+            const sitesOffline = categorySites.filter(s => s.status === 'down');
+            const availability = categorySites.length > 0 
+              ? (sitesOnline.length / categorySites.length * 100).toFixed(1) 
+              : '0';
 
-            {/* Right Column: DOWN Sites */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-bold text-slate-800 tracking-tight text-lg uppercase">Sites Críticos</h3>
-                  <span className="px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-bold rounded uppercase tracking-wider">Alerta</span>
+            return (
+              <div key={category} className="space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
+                      <div className={`w-2 h-2 rounded-full ${Number(availability) > 90 ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                      <span className="text-xs font-bold text-slate-600">{availability}% Disponibilidade</span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-slate-400 font-medium">Auto-refresh em {countdown}s</span>
                 </div>
-                <button className="text-xs text-blue-600 font-semibold hover:underline">Ver todos os incidentes</button>
-              </div>
 
-              <div className="space-y-4">
-                <AnimatePresence mode="popLayout">
-                  {sitesOffline.map(site => (
-                    <SiteCard key={site.id} site={site} type="down" />
-                  ))}
-                </AnimatePresence>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* UP Sites */}
+                  <div className="space-y-4">
+                    <AnimatePresence mode="popLayout">
+                      {sitesOnline.map(site => (
+                        <SiteCard key={site.id} site={site} type="up" />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* DOWN Sites */}
+                  <div className="space-y-4">
+                    <AnimatePresence mode="popLayout">
+                      {sitesOffline.map(site => (
+                        <SiteCard key={site.id} site={site} type="down" />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })}
 
           {/* System Logs Table (Admin Panel) */}
           <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-12 mb-20 relative z-10">
