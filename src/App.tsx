@@ -17,6 +17,7 @@ import {
   Monitor,
   HelpCircle,
   FileText,
+  Trash2,
   Map as MapIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -117,6 +118,27 @@ export default function App() {
     }
   };
 
+  const handleDeleteSite = async (ip: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Tem certeza que deseja apagar este dispositivo?')) return;
+    try {
+      const response = await fetch(`/api/sites?ip=${ip}`, { method: 'DELETE' });
+      if (response.ok) fetchData();
+    } catch (error) {
+      console.error("Erro ao apagar site:", error);
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (!confirm('Tem certeza que deseja apagar esta categoria?')) return;
+    try {
+      const response = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
+      if (response.ok) fetchCategories();
+    } catch (error) {
+      console.error("Erro ao apagar categoria:", error);
+    }
+  };
+
   const fetchSiteLogs = async (ip: string) => {
     try {
       const response = await fetch(`/api/site-logs?ip=${ip}`);
@@ -182,8 +204,14 @@ export default function App() {
 
               <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
                 {availableCategories.map(cat => (
-                  <div key={cat.id} className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
+                  <div key={cat.id} className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100 group">
                     <span className="font-bold text-slate-700">{cat.nome}</span>
+                    <button 
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -465,7 +493,13 @@ export default function App() {
                   <div className="space-y-4">
                     <AnimatePresence mode="popLayout">
                       {sitesOnline.map(site => (
-                        <SiteCard key={site.id} site={site} type="up" onSelect={() => handleSiteClick(site)} />
+                        <SiteCard 
+                          key={site.id} 
+                          site={site} 
+                          type="up" 
+                          onSelect={() => handleSiteClick(site)} 
+                          onDelete={(e) => handleDeleteSite(site.ip, e)}
+                        />
                       ))}
                     </AnimatePresence>
                   </div>
@@ -474,7 +508,13 @@ export default function App() {
                   <div className="space-y-4">
                     <AnimatePresence mode="popLayout">
                       {sitesOffline.map(site => (
-                        <SiteCard key={site.id} site={site} type="down" onSelect={() => handleSiteClick(site)} />
+                        <SiteCard 
+                          key={site.id} 
+                          site={site} 
+                          type="down" 
+                          onSelect={() => handleSiteClick(site)} 
+                          onDelete={(e) => handleDeleteSite(site.ip, e)}
+                        />
                       ))}
                     </AnimatePresence>
                   </div>
@@ -557,7 +597,7 @@ function HeaderStat({ label, value, color }: { label: string, value: number, col
   );
 }
 
-function SiteCard({ site, type, onSelect }: { site: Site, type: 'up' | 'down', key?: any, onSelect: () => void }) {
+function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' | 'down', key?: any, onSelect: () => void, onDelete: (e: React.MouseEvent) => void }) {
   const isUp = type === 'up';
 
   return (
@@ -572,6 +612,14 @@ function SiteCard({ site, type, onSelect }: { site: Site, type: 'up' | 'down', k
         isUp ? 'neon-border-green-light border-l-emerald-500' : 'animate-pulse-red-soft border-l-4 border-l-rose-500'
       }`}
     >
+      {/* Botão de Apagar (Aparece no Hover) */}
+      <button 
+        onClick={onDelete}
+        className="absolute top-2 right-2 p-2 text-slate-200 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 z-10"
+        title="Apagar dispositivo"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
       <div className={`w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 border ${
         isUp ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'
       }`}>

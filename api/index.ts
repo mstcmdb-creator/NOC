@@ -192,4 +192,28 @@ app.post("/api/categories", async (req, res) => {
   }
 });
 
+// NOVO: Apagar site
+app.delete("/api/sites", async (req, res) => {
+  const { ip } = req.query;
+  try {
+    const { error } = await supabase.from('sites').delete().eq('ip', ip as string);
+    if (error) throw error;
+    res.send("OK");
+  } catch (err: any) {
+    res.status(500).send(err.message);
+  }
+});
+
+// NOVO: Apagar categoria
+app.delete("/api/categories", async (req, res) => {
+  const { id } = req.query;
+  try {
+    const { error } = await supabase.from('categorias').delete().eq('id', id);
+    if (error) throw error;
+    res.send("OK");
+  } catch (err: any) {
+    res.status(500).send(err.message);
+  }
+});
+
 export default app;
