@@ -92,6 +92,7 @@ app.get("/api/update-status", async (req, res) => {
         total_incidentes_resolvidos: totalIncidentes,
         total_tempo_resolucao_segundos: totalTempoResolucao,
         tmro_segundos: tmroSegundos,
+        status_desde: (status !== oldSite?.status) ? new Date().toISOString() : (oldSite?.status_desde || new Date().toISOString()),
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
 
