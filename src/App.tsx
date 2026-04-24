@@ -104,13 +104,13 @@ export default function App() {
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 md:p-12 rounded-[40px] shadow-2xl">
             <div className="flex justify-center mb-8">
               <div className="w-16 h-16 bg-gradient-to-tr from-emerald-400 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <Activity className="w-8 h-8 text-white" />
+                <Globe className="w-8 h-8 text-white" />
               </div>
             </div>
             
             <div className="text-center mb-10">
-              <h1 className="text-3xl font-black text-white tracking-tight mb-2">NOC Dashboard</h1>
-              <p className="text-slate-400 font-medium">Autenticação de Sistema Monitoring</p>
+              <h1 className="text-3xl font-black text-white tracking-tight mb-2">NOCng Monitoring</h1>
+              <p className="text-slate-400 font-medium">Autenticação de Segurança</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-5">
@@ -157,7 +157,7 @@ export default function App() {
             </form>
 
             <p className="text-center mt-10 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-              &copy; 2026 Mercury NOC • Secure Access
+              &copy; 2026 NOCng Monitoring • Acesso Seguro
             </p>
           </div>
         </motion.div>
