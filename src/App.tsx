@@ -109,8 +109,8 @@ export default function App() {
             </div>
             
             <div className="text-center mb-10">
-              <h1 className="text-3xl font-black text-white tracking-tight mb-2">NOCng Monitoring</h1>
-              <p className="text-slate-400 font-medium">Autenticação de Segurança</p>
+              <h1 className="text-3xl font-black text-white tracking-tight mb-2">Mercury-JS</h1>
+              <p className="text-slate-400 font-medium">NOCng Monitoring System</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-5">
@@ -480,9 +480,15 @@ export default function App() {
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <h1 className="font-black text-2xl tracking-tighter text-slate-900">MERCURY-JS</h1>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center shadow-xl shadow-black/10">
+                <Globe className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-black tracking-tight text-slate-900 leading-none">Mercury-JS</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Monitoring</p>
+              </div>
             </div>
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
@@ -491,8 +497,8 @@ export default function App() {
               <ArrowRight className="w-5 h-5 rotate-180" />
             </button>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-slate-800 tracking-tight">MSTELCOM</span>
+          <div className="flex flex-col pl-1">
+            <span className="text-sm font-bold text-slate-800 tracking-tight">NOCng</span>
             <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Network Infrastructure</span>
           </div>
         </div>
