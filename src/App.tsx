@@ -340,7 +340,7 @@ function SiteCard({ site, type }: { site: Site, type: 'up' | 'down', key?: any }
           </div>
           <div className="text-right">
             <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-              Está {isUp ? 'UP' : 'DOWN'} desde
+              {isUp ? 'Operacional desde' : 'Fora de serviço desde'}
             </span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isUp ? 'text-slate-700 bg-slate-100' : 'text-rose-600 bg-rose-100 animate-pulse'}`}>
               {new Date(site.status_desde || site.ultima_verificacao).toLocaleTimeString('pt-PT')}
