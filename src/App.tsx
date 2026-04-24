@@ -43,6 +43,9 @@ export default function App() {
   const [siteLogs, setSiteLogs] = useState<any[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site' });
+  const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const formatTMRO = (seconds: number) => {
     if (!seconds || seconds === 0) return '0s';
@@ -69,6 +72,16 @@ export default function App() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories');
+      const data = await response.json();
+      setAvailableCategories(data);
+    } catch (error) {
+      console.error("Erro ao buscar categorias:", error);
+    }
+  };
+
   const handleAddNode = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -79,11 +92,28 @@ export default function App() {
       });
       if (response.ok) {
         setIsAddModalOpen(false);
-        setNewNode({ nome_site: '', ip: '', categoria: 'Site' });
+        setNewNode({ nome_site: '', ip: '', categoria: availableCategories[0]?.nome || 'Site' });
         fetchData();
       }
     } catch (error) {
       console.error("Erro ao criar node:", error);
+    }
+  };
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: newCategoryName })
+      });
+      if (response.ok) {
+        setNewCategoryName('');
+        fetchCategories();
+      }
+    } catch (error) {
+      console.error("Erro ao criar categoria:", error);
     }
   };
 
@@ -104,6 +134,7 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
+    fetchCategories();
     const interval = setInterval(() => {
       fetchData();
     }, 10000);
@@ -136,6 +167,35 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* MODAL: Gerir Categorias */}
+      <AnimatePresence>
+        {isCategoryModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center z-[110] p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCategoryModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden p-8">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-6">Categorias</h3>
+              
+              <form onSubmit={handleAddCategory} className="flex gap-2 mb-8">
+                <input required type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" placeholder="Nova Categoria..." />
+                <button type="submit" className="px-6 bg-black text-white rounded-xl font-bold hover:opacity-90">Add</button>
+              </form>
+
+              <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
+                {availableCategories.map(cat => (
+                  <div key={cat.id} className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
+                    <span className="font-bold text-slate-700">{cat.nome}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-6">
+                <button onClick={() => setIsCategoryModalOpen(false)} className="w-full p-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Fechar</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* MODAL: Novo Dispositivo */}
       <AnimatePresence>
         {isAddModalOpen && (
@@ -155,10 +215,9 @@ export default function App() {
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Categoria</label>
                   <select value={newNode.categoria} onChange={e => setNewNode({...newNode, categoria: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all appearance-none">
-                    <option value="Site">Site</option>
-                    <option value="Radwin">Radwin</option>
-                    <option value="Clientes">Clientes</option>
-                    <option value="Outras">Outras</option>
+                    {availableCategories.map(cat => (
+                      <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="pt-4 flex gap-3">
@@ -280,10 +339,18 @@ export default function App() {
         <nav className="flex-1 px-4 py-8 space-y-1">
           <button 
             onClick={() => setIsAddModalOpen(true)}
-            className="w-full flex items-center gap-3 px-4 py-4 bg-black text-white rounded-2xl mb-8 shadow-xl shadow-black/10 hover:opacity-90 transition-all font-bold text-sm"
+            className="w-full flex items-center gap-3 px-4 py-4 bg-black text-white rounded-2xl shadow-xl shadow-black/10 hover:opacity-90 transition-all font-bold text-sm"
           >
             <Server className="w-5 h-5" />
             Novo Dispositivo
+          </button>
+
+          <button 
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 text-slate-500 rounded-2xl mb-8 hover:bg-slate-100 hover:text-slate-900 transition-all font-bold text-xs"
+          >
+            <Settings className="w-4 h-4" />
+            Gerir Categorias
           </button>
 
           <NavItem 

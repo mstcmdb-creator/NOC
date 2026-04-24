@@ -158,4 +158,37 @@ app.post("/api/sites", async (req, res) => {
   }
 });
 
+// NOVO: Listar categorias
+app.get("/api/categories", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('categorias')
+      .select('*')
+      .order('nome', { ascending: true });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json([]);
+  }
+});
+
+// NOVO: Criar categoria
+app.post("/api/categories", async (req, res) => {
+  const { nome } = req.body;
+  if (!nome) return res.status(400).send("Nome é obrigatório");
+
+  try {
+    const { data, error } = await supabase
+      .from('categorias')
+      .insert({ nome })
+      .select();
+
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (err: any) {
+    res.status(500).send(err.message);
+  }
+});
+
 export default app;
