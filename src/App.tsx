@@ -584,177 +584,76 @@ export default function App() {
         </div>
       </aside>
 
-        {/* Main Content */}
+        {/* Conteúdo Principal */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
-          {/* Top Header */}
-          <header className="h-20 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
-            <div className="flex gap-4 md:gap-12 items-center overflow-x-auto no-scrollbar scroll-smooth">
-              <button 
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg"
-              >
-                <Menu className="w-6 h-6" />
-              </button>
+          {/* Cabeçalho */}
+          <header className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-20">
+            <div className="flex gap-12 items-center">
               <HeaderStat label="TOTAL" value={sites?.length || 0} />
-              <div className="w-px h-8 bg-slate-200 shrink-0"></div>
+              <div className="w-px h-8 bg-slate-200"></div>
               <HeaderStat label="ONLINE" value={(sites || []).filter(s => s?.status === 'up').length} color="emerald" />
-              <div className="w-px h-8 bg-slate-200 shrink-0 hidden sm:block"></div>
-              <HeaderStat label="OFFLINE" value={(sites || []).filter(s => s?.status === 'down').length} color="rose" className="hidden sm:flex" />
+              <div className="w-px h-8 bg-slate-200"></div>
+              <HeaderStat label="OFFLINE" value={(sites || []).filter(s => s?.status === 'down').length} color="rose" />
             </div>
 
-          <div className="flex items-center gap-2 md:gap-6">
-            <button className="p-2 text-slate-400 hover:text-slate-600 relative">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
-            </button>
-            <div className="flex items-center gap-3 pl-2 md:pl-4 border-l border-slate-200">
-              <div className="w-8 h-8 md:w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
-                <img 
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" 
-                  alt="Avatar" 
-                  referrerPolicy="no-referrer"
-                />
+            <div className="flex items-center gap-6">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                Auto-refresh: {countdown}s
+              </span>
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                <Monitor className="w-5 h-5 text-slate-400" />
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Dashboard View */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-slate-50/50">
-          {!loading && (categories || []).length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-                <Globe className="w-10 h-10 text-slate-300" />
+          {/* Área de Monitorização */}
+          <main className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <RefreshCw className="w-10 h-10 text-slate-300 animate-spin mb-4" />
+                <p className="text-slate-400 font-medium">A carregar infraestrutura...</p>
               </div>
-              <h3 className="text-xl font-bold text-slate-900">Nenhum dispositivo encontrado</h3>
-              <p className="text-slate-500 mt-2 max-w-sm">
-                Adicione o seu primeiro site usando o botão "Novo Dispositivo" na barra lateral.
-              </p>
-            </div>
-          )}
-
-          {(categories || []).map(category => {
-            if (!category) return null;
-            const categorySites = sites.filter(s => (s.categoria || 'Site') === category);
-            const sitesOnline = categorySites.filter(s => s.status === 'up');
-            const sitesOffline = categorySites.filter(s => s.status === 'down');
-            
-            // Opção A: Disponibilidade Tempo Real (% de sites online agora)
-            const realTimeAvailability = categorySites.length > 0 
-              ? (sitesOnline.length / categorySites.length * 100).toFixed(1) 
-              : '0';
-
-            // Opção B: Média de SLA Histórico da Categoria
-            const averageSLA = categorySites.length > 0
-              ? (categorySites.reduce((acc, curr) => acc + (curr.uptime_sla || 0), 0) / categorySites.length).toFixed(2)
-              : '100.00';
-
-            // TMRO Médio da Categoria
-            const averageTMRO = categorySites.length > 0
-              ? categorySites.reduce((acc, curr) => acc + (curr.tmro_segundos || 0), 0) / categorySites.length
-              : 0;
-
-            return (
-              <div key={category} id={`category-${category}`} className="space-y-6 pt-8 first:pt-0">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
-                  <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
-                    <div className="flex flex-wrap gap-2">
-                      <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">Agora</span>
-                        <div className={`w-1.5 h-1.5 rounded-full ${Number(realTimeAvailability) > 90 ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                        <span className="text-[10px] font-bold text-slate-700">{realTimeAvailability}%</span>
+            ) : (categories || []).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                  <Globe className="w-10 h-10 text-slate-300" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">Sem dispositivos</h3>
+                <p className="text-slate-500 mt-2">Adicione um novo node para começar.</p>
+              </div>
+            ) : (
+              <div className="space-y-12">
+                {(categories || []).map(category => {
+                  const categorySites = (sites || []).filter(s => (s?.categoria || 'Site') === category);
+                  return (
+                    <div key={category} className="space-y-6">
+                      <div className="flex items-center gap-4 border-b border-slate-200 pb-4">
+                        <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
+                        <span className="px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-bold">
+                          {categorySites.length} Nodes
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full shadow-sm">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">SLA Real</span>
-                        <span className="text-[10px] font-bold">{averageSLA}%</span>
-                      </div>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-100 text-blue-700 rounded-full shadow-sm">
-                        <span className="text-[9px] font-bold text-blue-400 uppercase">TMRO</span>
-                        <span className="text-[10px] font-bold">{formatTMRO(averageTMRO)}</span>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {categorySites.map(site => (
+                          <SiteCard 
+                            key={site.id} 
+                            site={site} 
+                            type={site.status} 
+                            onSelect={() => handleSiteClick(site)} 
+                            onDelete={(e) => handleDeleteSite(site.ip, e)}
+                          />
+                        ))}
                       </div>
                     </div>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Auto-refresh em {countdown}s</span>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* UP Sites */}
-                  <div className="space-y-4">
-                    <AnimatePresence mode="popLayout">
-                      {sitesOnline.map(site => (
-                        <SiteCard 
-                          key={site.id} 
-                          site={site} 
-                          type="up" 
-                          onSelect={() => handleSiteClick(site)} 
-                          onDelete={(e) => handleDeleteSite(site.ip, e)}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* DOWN Sites */}
-                  <div className="space-y-4">
-                    <AnimatePresence mode="popLayout">
-                      {sitesOffline.map(site => (
-                        <SiteCard 
-                          key={site.id} 
-                          site={site} 
-                          type="down" 
-                          onSelect={() => handleSiteClick(site)} 
-                          onDelete={(e) => handleDeleteSite(site.ip, e)}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
-            );
-          })}
-
-          {/* System Logs Table (Admin Panel) */}
-          <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-12 mb-20 relative z-10">
-            <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <h3 className="font-bold text-slate-800 text-xl">Logs de Sistema</h3>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <button className="flex-1 sm:flex-none px-4 py-2 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-100 transition-colors">Exportar</button>
-                <button className="flex-1 sm:flex-none px-4 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity">Filtrar</button>
-              </div>
-            </div>
-            <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left min-w-[600px]">
-                <thead className="bg-slate-50/80">
-                  <tr>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Timestamp</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dispositivo</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Evento</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Utilizador</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  <LogRow time="2023-11-24 14:30:12" device="CORE-SWITCH-LUA-01" event="VLAN 100 Port 24 Down" status="CRITICAL" color="rose" user="System" />
-                  <LogRow time="2023-11-24 14:28:45" device="FIREWALL-CAB-02" event="Login success via SSH" status="INFO" color="emerald" user="admin" />
-                  <LogRow time="2023-11-24 14:25:01" device="SITE-LUB-12" event="SNMP Polling Timeout" status="DOWN" color="rose" user="SNMP" />
-                  <LogRow time="2023-11-24 14:20:10" device="HUB-BENG-04" event="Interface Gigabit0/1 Recovered" status="UP" color="emerald" user="System" />
-                </tbody>
-              </table>
-            </div>
-            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white">
-              <span className="hidden sm:inline">Mostrando 4 de 1.458 logs</span>
-              <span className="sm:hidden">4 logs</span>
-              <div className="flex gap-4 items-center">
-                <button className="p-1 hover:bg-slate-50 rounded"><ChevronRight className="w-4 h-4 rotate-180" /></button>
-                <button className="p-1 hover:bg-slate-50 rounded"><ChevronRight className="w-4 h-4" /></button>
-              </div>
-            </div>
-          </section>
-        </main>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
   return (
@@ -793,12 +692,7 @@ function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' |
   const isUp = type === 'up';
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, x: isUp ? -20 : 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ scale: 1.01 }}
+    <div
       onClick={onSelect}
       className={`p-4 md:p-6 rounded-2xl bg-white border border-slate-200 flex items-center gap-4 md:gap-6 relative group transition-all shadow-sm cursor-pointer ${
         isUp ? 'neon-border-green-light border-l-emerald-500' : 'animate-pulse-red-soft border-l-4 border-l-rose-500'
@@ -824,8 +718,8 @@ function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' |
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-start">
           <div>
-            <h4 className="font-bold text-slate-900 truncate tracking-tight">{site.nome_site}</h4>
-            <p className="text-xs font-mono text-slate-400 mt-0.5">{site.ip} {site.status === 'down' && <span className="text-rose-500 font-bold ml-1">(TIMEOUT)</span>}</p>
+            <h4 className="font-bold text-slate-900 truncate tracking-tight">{site?.nome_site}</h4>
+            <p className="text-xs font-mono text-slate-400 mt-0.5">{site?.ip} {site?.status === 'down' && <span className="text-rose-500 font-bold ml-1">(TIMEOUT)</span>}</p>
           </div>
           <div className="text-right">
             <span className="block text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-1 whitespace-nowrap">
@@ -837,19 +731,19 @@ function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' |
             <div className="mt-2 flex flex-col items-end gap-1">
               <div className="flex items-center gap-1">
                 <span className="text-[8px] font-bold text-slate-300 uppercase">SLA</span>
-                <span className="text-[9px] font-black text-slate-400">{site.uptime_sla?.toFixed(2)}%</span>
+                <span className="text-[9px] font-black text-slate-400">{site?.uptime_sla?.toFixed(2)}%</span>
               </div>
-              {site.tmro_segundos > 0 && (
+              {(site?.tmro_segundos || 0) > 0 && (
                 <div className="flex items-center gap-1">
                   <span className="text-[8px] font-bold text-blue-200 uppercase tracking-tighter">TMRO</span>
-                  <span className="text-[9px] font-black text-blue-400">{formatTMRO(site.tmro_segundos)}</span>
+                  <span className="text-[9px] font-black text-blue-400">{formatTMRO(site?.tmro_segundos || 0)}</span>
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
