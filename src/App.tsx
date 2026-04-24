@@ -293,8 +293,16 @@ export default function App() {
     };
   }, []);
 
-  // Agrupar sites por categoria
-  const categories = Array.from(new Set(sites.map(s => s.categoria || 'Site')));
+  // Agrupar sites por categoria com segurança extra
+  const categories = React.useMemo(() => {
+    try {
+      if (!sites || !Array.isArray(sites)) return [];
+      return Array.from(new Set(sites.map(s => s?.categoria || 'Site'))).filter(Boolean);
+    } catch (err) {
+      console.error("Erro ao calcular categorias:", err);
+      return ['Site'];
+    }
+  }, [sites]);
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
@@ -576,23 +584,23 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col relative overflow-hidden">
-        {/* Top Header */}
-        <header className="h-20 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex gap-4 md:gap-12 items-center overflow-x-auto no-scrollbar scroll-smooth">
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <HeaderStat label="TOTAL" value={sites.length} />
-            <div className="w-px h-8 bg-slate-200 shrink-0"></div>
-            <HeaderStat label="ONLINE" value={sites.filter(s => s.status === 'up').length} color="emerald" />
-            <div className="w-px h-8 bg-slate-200 shrink-0 hidden sm:block"></div>
-            <HeaderStat label="OFFLINE" value={sites.filter(s => s.status === 'down').length} color="rose" className="hidden sm:flex" />
-          </div>
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col relative overflow-hidden">
+          {/* Top Header */}
+          <header className="h-20 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
+            <div className="flex gap-4 md:gap-12 items-center overflow-x-auto no-scrollbar scroll-smooth">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+              <HeaderStat label="TOTAL" value={sites?.length || 0} />
+              <div className="w-px h-8 bg-slate-200 shrink-0"></div>
+              <HeaderStat label="ONLINE" value={(sites || []).filter(s => s?.status === 'up').length} color="emerald" />
+              <div className="w-px h-8 bg-slate-200 shrink-0 hidden sm:block"></div>
+              <HeaderStat label="OFFLINE" value={(sites || []).filter(s => s?.status === 'down').length} color="rose" className="hidden sm:flex" />
+            </div>
 
           <div className="flex items-center gap-2 md:gap-6">
             <button className="p-2 text-slate-400 hover:text-slate-600 relative">
@@ -824,7 +832,7 @@ function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' |
               {isUp ? 'Operacional desde' : 'Fora de serviço desde'}
             </span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isUp ? 'text-slate-700 bg-slate-100' : 'text-rose-600 bg-rose-100 animate-pulse'}`}>
-              {new Date(site.status_desde || site.ultima_verificacao).toLocaleTimeString('pt-PT')}
+              {safeDate(site?.status_desde || site?.ultima_verificacao).toLocaleTimeString('pt-PT')}
             </span>
             <div className="mt-2 flex flex-col items-end gap-1">
               <div className="flex items-center gap-1">
@@ -844,6 +852,16 @@ function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' |
     </motion.div>
   );
 }
+
+const safeDate = (dateStr: any) => {
+  try {
+    if (!dateStr) return new Date();
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
+  } catch {
+    return new Date();
+  }
+};
 
 function LogRow({ time, device, event, status, color, user }: any) {
   const colors = {
