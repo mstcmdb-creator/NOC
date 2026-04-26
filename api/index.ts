@@ -238,6 +238,29 @@ app.post("/api/sites", async (req, res) => {
   }
 });
 
+// NOVO: Atualizar site
+app.post("/api/sites/update", async (req, res) => {
+  const { nome_site, ip, categoria, descricao, depende_de, old_ip } = req.body;
+  
+  try {
+    const { data, error } = await supabase
+      .from('sites')
+      .update({ 
+        nome_site, 
+        ip, 
+        categoria, 
+        descricao, 
+        depende_de 
+      })
+      .eq('ip', old_ip);
+
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).send(err.message);
+  }
+});
+
 // NOVO: Listar categorias
 app.get("/api/categories", async (req, res) => {
   try {

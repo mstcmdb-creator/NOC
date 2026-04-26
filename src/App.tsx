@@ -64,6 +64,9 @@ export default function App() {
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSite, setEditingSite] = useState<Site | null>(null);
+  const [editNode, setEditNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '' });
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(true);
   const [globalLogs, setGlobalLogs] = useState<any[]>([]);
 
@@ -125,6 +128,41 @@ export default function App() {
       console.error("Erro ao criar node:", error);
       alert(`Erro crítico: ${error.message}`);
     }
+  };
+
+  const handleEditNode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSite) return;
+    try {
+      const response = await fetch('/api/sites/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editNode, old_ip: editingSite.ip })
+      });
+      if (response.ok) {
+        setIsEditModalOpen(false);
+        fetchData();
+        alert('Dispositivo atualizado! ✨');
+      } else {
+        const errorText = await response.text();
+        alert(`Erro ao atualizar: ${errorText}`);
+      }
+    } catch (error: any) {
+      console.error("Erro ao editar node:", error);
+      alert(`Erro crítico: ${error.message}`);
+    }
+  };
+
+  const openEditModal = (site: Site) => {
+    setEditingSite(site);
+    setEditNode({
+      nome_site: site.nome_site,
+      ip: site.ip,
+      categoria: site.categoria,
+      descricao: site.descricao || '',
+      depende_de: site.depende_de || ''
+    });
+    setIsEditModalOpen(true);
   };
 
   const handleAddCategory = async (e: React.FormEvent) => {
@@ -254,6 +292,60 @@ export default function App() {
               <div className="pt-6">
                 <button onClick={() => setIsCategoryModalOpen(false)} className="w-full p-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Fechar</button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      
+      {/* MODAL: Editar Dispositivo */}
+      <AnimatePresence>
+        {isEditModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center z-[100] p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden p-8">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-6">Editar Dispositivo</h3>
+              <form onSubmit={handleEditNode} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nome do Site</label>
+                  <input required type="text" value={editNode.nome_site} onChange={e => setEditNode({...editNode, nome_site: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Endereço IP</label>
+                  <input required type="text" value={editNode.ip} onChange={e => setEditNode({...editNode, ip: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Categoria</label>
+                  <select value={editNode.categoria} onChange={e => setEditNode({...editNode, categoria: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all appearance-none">
+                    {availableCategories.map(cat => (
+                      <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Depende de (Segure CTRL para vários)</label>
+                  <select 
+                    multiple 
+                    value={editNode.depende_de.split(',').filter(Boolean)} 
+                    onChange={e => {
+                      const values = Array.from(e.target.selectedOptions, option => option.value);
+                      setEditNode({...editNode, depende_de: values.join(',')});
+                    }} 
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all h-24"
+                  >
+                    {sites.filter(s => s.ip !== editingSite?.ip).map(s => (
+                      <option key={s.ip} value={s.ip}>{s.nome_site} ({s.ip})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Descrição</label>
+                  <textarea value={editNode.descricao} onChange={e => setEditNode({...editNode, descricao: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all h-20 resize-none" />
+                </div>
+                <div className="pt-4 flex gap-3">
+                  <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 p-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
+                  <button type="submit" className="flex-1 p-3 bg-black text-white rounded-xl font-bold hover:opacity-90 transition-opacity">Salvar Alterações</button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
@@ -481,7 +573,24 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <NavItem icon={<Monitor className="w-5 h-5" />} label="Dispositivos" />
+          <NavItem 
+            icon={<LayoutDashboard className="w-5 h-5" />} 
+            label="Dashboard" 
+            active={activeTab === 'dashboard'} 
+            onClick={() => {
+              setActiveTab('dashboard');
+              setIsMobileMenuOpen(false);
+            }} 
+          />
+          <NavItem 
+            icon={<Monitor className="w-5 h-5" />} 
+            label="Dispositivos" 
+            active={activeTab === 'dispositivos'} 
+            onClick={() => {
+              setActiveTab('dispositivos');
+              setIsMobileMenuOpen(false);
+            }} 
+          />
           <NavItem icon={<ShieldAlert className="w-5 h-5" />} label="Alertas" />
           <NavItem icon={<Settings className="w-5 h-5" />} label="Definições" />
         </nav>
@@ -535,140 +644,196 @@ export default function App() {
           </div>
         </header>
 
-        {/* Dashboard View */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-12 bg-slate-50/50">
-          {categories.map(category => {
-            const categorySites = sites.filter(s => (s.categoria || 'Site') === category);
-            const sitesOnline = categorySites.filter(s => s.status === 'up');
-            const sitesDependent = categorySites.filter(s => s.status === 'dependente');
-            const sitesOffline = categorySites.filter(s => s.status === 'down');
-            
-            // Opção A: Disponibilidade Tempo Real (% de sites online agora)
-            const realTimeAvailability = categorySites.length > 0 
-              ? (sitesOnline.length / categorySites.length * 100).toFixed(1) 
-              : '0';
+        {/* Main View Area */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
+          <AnimatePresence mode="wait">
+            {activeTab === 'dashboard' ? (
+              <motion.div 
+                key="dashboard"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-12"
+              >
+                {categories.map(category => {
+                  const categorySites = sites.filter(s => (s.categoria || 'Site') === category);
+                  const sitesOnline = categorySites.filter(s => s.status === 'up');
+                  const sitesDependent = categorySites.filter(s => s.status === 'dependente');
+                  const sitesOffline = categorySites.filter(s => s.status === 'down');
+                  
+                  const realTimeAvailability = categorySites.length > 0 
+                    ? (sitesOnline.length / categorySites.length * 100).toFixed(1) 
+                    : '0';
 
-            // Opção B: Média de SLA Histórico da Categoria
-            const averageSLA = categorySites.length > 0
-              ? (categorySites.reduce((acc, curr) => acc + (curr.uptime_sla || 0), 0) / categorySites.length).toFixed(2)
-              : '100.00';
+                  const averageSLA = categorySites.length > 0
+                    ? (categorySites.reduce((acc, curr) => acc + (curr.uptime_sla || 0), 0) / categorySites.length).toFixed(2)
+                    : '100.00';
 
-            // TMRO Médio da Categoria
-            const averageTMRO = categorySites.length > 0
-              ? categorySites.reduce((acc, curr) => acc + (curr.tmro_segundos || 0), 0) / categorySites.length
-              : 0;
+                  const averageTMRO = categorySites.length > 0
+                    ? categorySites.reduce((acc, curr) => acc + (curr.tmro_segundos || 0), 0) / categorySites.length
+                    : 0;
 
-            return (
-              <div key={category} id={`category-${category}`} className="space-y-6 pt-8 first:pt-0">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
-                  <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
-                    <div className="flex flex-wrap gap-2">
-                      <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">Agora</span>
-                        <div className={`w-1.5 h-1.5 rounded-full ${Number(realTimeAvailability) > 90 ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                        <span className="text-[10px] font-bold text-slate-700">{realTimeAvailability}%</span>
+                  return (
+                    <div key={category} id={`category-${category}`} className="space-y-6 pt-8 first:pt-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
+                        <div className="flex items-center gap-4">
+                          <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
+                          <div className="flex flex-wrap gap-2">
+                            <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">Agora</span>
+                              <div className={`w-1.5 h-1.5 rounded-full ${Number(realTimeAvailability) > 90 ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                              <span className="text-[10px] font-bold text-slate-700">{realTimeAvailability}%</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full shadow-sm">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">SLA Real</span>
+                              <span className="text-[10px] font-bold">{averageSLA}%</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-100 text-blue-700 rounded-full shadow-sm">
+                              <span className="text-[9px] font-bold text-blue-400 uppercase">TMRO</span>
+                              <span className="text-[10px] font-bold">{formatTMRO(averageTMRO)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Auto-refresh em {countdown}s</span>
                       </div>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full shadow-sm">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">SLA Real</span>
-                        <span className="text-[10px] font-bold">{averageSLA}%</span>
-                      </div>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-100 text-blue-700 rounded-full shadow-sm">
-                        <span className="text-[9px] font-bold text-blue-400 uppercase">TMRO</span>
-                        <span className="text-[10px] font-bold">{formatTMRO(averageTMRO)}</span>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <AnimatePresence mode="popLayout">
+                            {sitesOnline.map(site => (
+                              <SiteCard 
+                                key={site.id} 
+                                site={site} 
+                                type="up" 
+                                onSelect={() => handleSiteClick(site)} 
+                                onDelete={() => {}} // Desativado no dashboard
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </div>
+
+                        <div className="space-y-4">
+                          <AnimatePresence mode="popLayout">
+                            {[...sitesDependent, ...sitesOffline].map(site => (
+                              <SiteCard 
+                                key={site.id} 
+                                site={site} 
+                                type={site.status === 'dependente' ? 'dependent' : 'down'} 
+                                onSelect={() => handleSiteClick(site)} 
+                                onDelete={() => {}} // Desativado no dashboard
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+
+                {/* System Logs Table (Mini Version in Dashboard) */}
+                <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-12 relative z-10">
+                  <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="font-bold text-slate-800 text-lg">Logs Recentes</h3>
+                    <button className="text-xs font-bold text-blue-600 hover:underline">Ver todos</button>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Auto-refresh em {countdown}s</span>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <tbody className="divide-y divide-slate-100">
+                        {globalLogs.slice(0, 5).map((log) => (
+                          <LogRow 
+                            key={log.id}
+                            time={new Date(log.changed_at).toLocaleString('pt-PT')}
+                            device={log.sites?.nome_site || log.site_ip}
+                            event={log.status === 'up' ? 'Conexão Restaurada' : 'Queda de Conexão'}
+                            status={log.status === 'up' ? 'ONLINE' : 'OFFLINE'}
+                            color={log.status === 'up' ? 'emerald' : 'rose'}
+                            user="MikroTik"
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="dispositivos"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-8"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900">Gestão de Dispositivos</h2>
+                    <p className="text-slate-400 font-medium">Adicione, edite ou remova elementos da sua monitorização.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl font-bold shadow-lg shadow-black/10 hover:opacity-90 transition-all"
+                  >
+                    <Server className="w-5 h-5" />
+                    Novo Dispositivo
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* UP Sites */}
-                  <div className="space-y-4">
-                    <AnimatePresence mode="popLayout">
-                      {sitesOnline.map(site => (
-                        <SiteCard 
-                          key={site.id} 
-                          site={site} 
-                          type="up" 
-                          onSelect={() => handleSiteClick(site)} 
-                          onDelete={(e) => handleDeleteSite(site.ip, e)}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* DOWN Sites */}
-                  <div className="space-y-4">
-                    <AnimatePresence mode="popLayout">
-                      {[...sitesDependent, ...sitesOffline].map(site => (
-                        <SiteCard 
-                          key={site.id} 
-                          site={site} 
-                          type={site.status === 'dependente' ? 'dependent' : 'down'} 
-                          onSelect={() => handleSiteClick(site)} 
-                          onDelete={(e) => handleDeleteSite(site.ip, e)}
-                        />
-                      ))}
-                    </AnimatePresence>
+                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                          <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome / Identificação</th>
+                          <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Endereço IP</th>
+                          <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Categoria</th>
+                          <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dependência</th>
+                          <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {sites.map(site => (
+                          <tr key={site.id} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-8 py-5">
+                              <span className="font-bold text-slate-900 block">{site.nome_site}</span>
+                              <span className="text-[10px] text-slate-400 font-medium truncate max-w-[200px] block">{site.descricao || 'Sem descrição'}</span>
+                            </td>
+                            <td className="px-8 py-5">
+                              <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">{site.ip}</span>
+                            </td>
+                            <td className="px-8 py-5">
+                              <span className="text-xs font-black text-slate-400 uppercase tracking-wider">{site.categoria}</span>
+                            </td>
+                            <td className="px-8 py-5">
+                              <span className="text-[10px] font-bold text-slate-400">
+                                {site.depende_de ? site.depende_de.split(',').length + ' items' : 'Nenhuma'}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              <div className="flex justify-end gap-2">
+                                <button 
+                                  onClick={() => openEditModal(site)}
+                                  className="p-2 text-slate-300 hover:text-black transition-colors" 
+                                  title="Editar"
+                                >
+                                  <Settings className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={(e) => handleDeleteSite(site.ip, e)}
+                                  className="p-2 text-slate-300 hover:text-rose-500 transition-colors" 
+                                  title="Apagar"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-
-          {/* System Logs Table (Admin Panel) */}
-          <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-12 mb-20 relative z-10">
-            <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <h3 className="font-bold text-slate-800 text-xl">Logs de Sistema</h3>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <button className="flex-1 sm:flex-none px-4 py-2 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-100 transition-colors">Exportar</button>
-                <button className="flex-1 sm:flex-none px-4 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity">Filtrar</button>
-              </div>
-            </div>
-            <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left min-w-[600px]">
-                <thead className="bg-slate-50/80">
-                  <tr>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Timestamp</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dispositivo</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Evento</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Utilizador</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {globalLogs.length > 0 ? (
-                    globalLogs.map((log) => (
-                      <LogRow 
-                        key={log.id}
-                        time={new Date(log.changed_at).toLocaleString('pt-PT')}
-                        device={log.sites?.nome_site || log.site_ip}
-                        event={log.status === 'up' ? 'Conexão Restaurada' : 'Queda de Conexão'}
-                        status={log.status === 'up' ? 'ONLINE' : 'OFFLINE'}
-                        color={log.status === 'up' ? 'emerald' : 'rose'}
-                        user="MikroTik"
-                      />
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-sm italic">
-                        Nenhum log registado recentemente.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-white">
-              <span className="hidden sm:inline">Mostrando {globalLogs.length} logs recentes</span>
-              <span className="sm:hidden">{globalLogs.length} logs</span>
-              <div className="flex gap-4 items-center">
-                <button className="p-1 hover:bg-slate-50 rounded"><ChevronRight className="w-4 h-4 rotate-180" /></button>
-                <button className="p-1 hover:bg-slate-50 rounded"><ChevronRight className="w-4 h-4" /></button>
-              </div>
-            </div>
-          </section>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
       </div>
     </div>
@@ -727,14 +892,6 @@ function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' |
             : 'animate-pulse-red-soft border-l-4 border-l-rose-500'
       }`}
     >
-      {/* Botão de Apagar (Aparece no Hover) */}
-      <button 
-        onClick={onDelete}
-        className="absolute top-2 right-2 p-2 text-slate-200 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 z-10"
-        title="Apagar dispositivo"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
       <div className={`w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 border ${
         isUp 
           ? 'bg-emerald-50 border-emerald-100' 

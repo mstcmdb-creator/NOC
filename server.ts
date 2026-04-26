@@ -96,6 +96,22 @@ app.get("/api/update-status", async (req, res) => {
   }
 });
 
+// NOVO: Atualizar site
+app.post("/api/sites/update", async (req, res) => {
+  const { nome_site, ip, categoria, descricao, depende_de, old_ip } = req.body;
+  try {
+    const { error } = await supabase
+      .from('sites')
+      .update({ nome_site, ip, categoria, descricao, depende_de })
+      .eq('ip', old_ip);
+
+    if (error) throw error;
+    res.send("OK");
+  } catch (err: any) {
+    res.status(500).send(err.message);
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
