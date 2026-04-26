@@ -27,12 +27,15 @@ interface Site {
   id: number;
   nome_site: string;
   ip: string;
-  status: 'up' | 'down';
+  status: 'up' | 'down' | 'dependente';
   ultima_verificacao: string;
   status_desde: string;
   categoria: string;
   uptime_sla: number;
   tmro_segundos: number;
+  depende_de?: string;
+  causa_raiz?: string;
+  descricao?: string;
 }
 
 const formatTMRO = (seconds: number) => {
@@ -57,7 +60,7 @@ export default function App() {
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [siteLogs, setSiteLogs] = useState<any[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '' });
+  const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '' });
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -111,7 +114,7 @@ export default function App() {
       });
       if (response.ok) {
         setIsAddModalOpen(false);
-        setNewNode({ nome_site: '', ip: '', categoria: availableCategories[0]?.nome || 'Site', descricao: '' });
+        setNewNode({ nome_site: '', ip: '', categoria: availableCategories[0]?.nome || 'Site', descricao: '', depende_de: '' });
         fetchData();
         alert('Dispositivo criado com sucesso! ✨');
       } else {
@@ -277,6 +280,22 @@ export default function App() {
                   <select value={newNode.categoria} onChange={e => setNewNode({...newNode, categoria: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all appearance-none">
                     {availableCategories.map(cat => (
                       <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Depende de (Segure CTRL para vários)</label>
+                  <select 
+                    multiple 
+                    value={newNode.depende_de.split(',').filter(Boolean)} 
+                    onChange={e => {
+                      const values = Array.from(e.target.selectedOptions, option => option.value);
+                      setNewNode({...newNode, depende_de: values.join(',')});
+                    }} 
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all h-32"
+                  >
+                    {sites.map(s => (
+                      <option key={s.ip} value={s.ip}>{s.nome_site} ({s.ip})</option>
                     ))}
                   </select>
                 </div>
@@ -494,6 +513,8 @@ export default function App() {
             <div className="w-px h-8 bg-slate-200 shrink-0"></div>
             <HeaderStat label="ONLINE" value={sites.filter(s => s.status === 'up').length} color="emerald" />
             <div className="w-px h-8 bg-slate-200 shrink-0 hidden sm:block"></div>
+            <HeaderStat label="DEPENDENTE" value={sites.filter(s => s.status === 'dependente').length} color="amber" className="hidden sm:flex" />
+            <div className="w-px h-8 bg-slate-200 shrink-0 hidden sm:block"></div>
             <HeaderStat label="OFFLINE" value={sites.filter(s => s.status === 'down').length} color="rose" className="hidden sm:flex" />
           </div>
 
@@ -519,6 +540,7 @@ export default function App() {
           {categories.map(category => {
             const categorySites = sites.filter(s => (s.categoria || 'Site') === category);
             const sitesOnline = categorySites.filter(s => s.status === 'up');
+            const sitesDependent = categorySites.filter(s => s.status === 'dependente');
             const sitesOffline = categorySites.filter(s => s.status === 'down');
             
             // Opção A: Disponibilidade Tempo Real (% de sites online agora)
@@ -579,11 +601,11 @@ export default function App() {
                   {/* DOWN Sites */}
                   <div className="space-y-4">
                     <AnimatePresence mode="popLayout">
-                      {sitesOffline.map(site => (
+                      {[...sitesDependent, ...sitesOffline].map(site => (
                         <SiteCard 
                           key={site.id} 
                           site={site} 
-                          type="down" 
+                          type={site.status === 'dependente' ? 'dependent' : 'down'} 
                           onSelect={() => handleSiteClick(site)} 
                           onDelete={(e) => handleDeleteSite(site.ip, e)}
                         />
@@ -669,10 +691,11 @@ function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNo
   );
 }
 
-function HeaderStat({ label, value, color = 'default', className = "" }: { label: string; value: number; color?: 'emerald' | 'rose' | 'default'; className?: string }) {
+function HeaderStat({ label, value, color = 'default', className = "" }: { label: string; value: number; color?: 'emerald' | 'rose' | 'amber' | 'default'; className?: string }) {
   const colors = {
     emerald: 'text-emerald-500 bg-emerald-50',
     rose: 'text-rose-500 bg-rose-50',
+    amber: 'text-amber-500 bg-amber-50',
     default: 'text-slate-900'
   };
 
@@ -684,8 +707,9 @@ function HeaderStat({ label, value, color = 'default', className = "" }: { label
   );
 }
 
-function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' | 'down', key?: any, onSelect: () => void, onDelete: (e: React.MouseEvent) => void }) {
+function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' | 'down' | 'dependent', key?: any, onSelect: () => void, onDelete: (e: React.MouseEvent) => void }) {
   const isUp = type === 'up';
+  const isDependent = type === 'dependent';
 
   return (
     <motion.div
@@ -696,7 +720,11 @@ function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' |
       whileHover={{ scale: 1.01 }}
       onClick={onSelect}
       className={`p-4 md:p-6 rounded-2xl bg-white border border-slate-200 flex items-center gap-4 md:gap-6 relative group transition-all shadow-sm cursor-pointer ${
-        isUp ? 'neon-border-green-light border-l-emerald-500' : 'animate-pulse-red-soft border-l-4 border-l-rose-500'
+        isUp 
+          ? 'neon-border-green-light border-l-emerald-500' 
+          : isDependent 
+            ? 'border-l-4 border-l-amber-500' 
+            : 'animate-pulse-red-soft border-l-4 border-l-rose-500'
       }`}
     >
       {/* Botão de Apagar (Aparece no Hover) */}
@@ -708,11 +736,17 @@ function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' |
         <Trash2 className="w-4 h-4" />
       </button>
       <div className={`w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 border ${
-        isUp ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'
+        isUp 
+          ? 'bg-emerald-50 border-emerald-100' 
+          : isDependent
+            ? 'bg-amber-50 border-amber-100'
+            : 'bg-rose-50 border-rose-100'
       }`}>
         {isUp 
           ? <CheckCircle2 className="w-5 h-5 md:w-7 md:h-7 text-emerald-500" /> 
-          : <AlertCircle className="w-5 h-5 md:w-7 md:h-7 text-rose-500" />
+          : isDependent
+            ? <Activity className="w-5 h-5 md:w-7 md:h-7 text-amber-500" />
+            : <AlertCircle className="w-5 h-5 md:w-7 md:h-7 text-rose-500" />
         }
       </div>
 
@@ -720,14 +754,37 @@ function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' |
         <div className="flex justify-between items-start">
           <div>
             <h4 className="font-bold text-slate-900 truncate tracking-tight">{site.nome_site}</h4>
-            <p className="text-xs font-mono text-slate-400 mt-0.5">{site.ip} {site.status === 'down' && <span className="text-rose-500 font-bold ml-1">(TIMEOUT)</span>}</p>
+            <p className="text-xs font-mono text-slate-400 mt-0.5">
+              {site.ip} 
+              {site.status === 'down' && <span className="text-rose-500 font-bold ml-1">(TIMEOUT)</span>}
+              {site.status === 'dependente' && <span className="text-amber-500 font-bold ml-1">(DEPENDENTE)</span>}
+            </p>
+            {!isUp && site.depende_de && (
+              <p className="text-[9px] text-slate-400 mt-1 italic">
+                Depende de: {site.depende_de.split(',').map(ip => sites.find(s => s.ip === ip)?.nome_site || ip).join(', ')}
+              </p>
+            )}
+            {isDependent && site.causa_raiz && (
+              <div className="mt-2 p-2 bg-amber-50 border border-amber-100 rounded-lg">
+                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-tight flex items-center gap-1">
+                  <ShieldAlert className="w-3 h-3" />
+                  Falha causada por dependência do {site.causa_raiz}
+                </p>
+              </div>
+            )}
           </div>
           <div className="text-right">
             <span className="block text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-1 whitespace-nowrap">
-              {isUp ? 'Operacional desde' : 'Fora de serviço desde'}
+              {isUp ? 'Operacional desde' : isDependent ? 'Em espera desde' : 'Fora de serviço desde'}
             </span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isUp ? 'text-slate-700 bg-slate-100' : 'text-rose-600 bg-rose-100 animate-pulse'}`}>
-              {new Date(site.status_desde || site.ultima_verificacao).toLocaleTimeString('pt-PT')}
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+              isUp 
+                ? 'text-slate-700 bg-slate-100' 
+                : isDependent
+                  ? 'text-amber-600 bg-amber-100'
+                  : 'text-rose-600 bg-rose-100 animate-pulse'
+            }`}>
+              {new Date(site.status_desde || site.ultima_verificacao).toLocaleString('pt-PT')}
             </span>
             <div className="mt-2 flex flex-col items-end gap-1">
               <div className="flex items-center gap-1">

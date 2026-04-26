@@ -26,7 +26,43 @@ app.get("/api/sites", async (req, res) => {
         { id: 2, nome_site: "Data Center Porto", ip: "10.0.0.45", status: "up", ultima_verificacao: new Date().toISOString() }
       ]);
     }
-    res.json(data);
+
+    // Lógica de Dependência (Motor de Diagnóstico Automático)
+    const sites = data || [];
+    const siteMap = new Map(sites.map(s => [s.ip, s]));
+
+    const processedSites = sites.map(site => {
+      if (site.status === 'up') return site;
+      
+      const deps = (site.depende_de || '').split(',').map((ip: string) => ip.trim()).filter(Boolean);
+      if (deps.length === 0) return site;
+
+      const downDependencies = deps
+        .map(depIp => siteMap.get(depIp))
+        .filter(dep => dep && dep.status === 'down');
+
+      if (downDependencies.length > 0) {
+        const findRoots = (currentSite: any): string[] => {
+          const deps = (currentSite.depende_de || '').split(',').map((ip: string) => ip.trim()).filter(Boolean);
+          const downDeps = deps.map(ip => siteMap.get(ip)).filter(d => d && d.status === 'down');
+          if (downDeps.length === 0) return [currentSite.nome_site];
+          return downDeps.flatMap(d => findRoots(d));
+        };
+
+        const allRoots = downDependencies.flatMap(dep => findRoots(dep));
+        const uniqueRoots = Array.from(new Set(allRoots));
+
+        return { 
+          ...site, 
+          status: 'dependente', 
+          causa_raiz: uniqueRoots.join(', ')
+        };
+      }
+
+      return site;
+    });
+
+    res.json(processedSites);
   } catch (err) {
     res.status(500).json({ error: "Erro interno" });
   }

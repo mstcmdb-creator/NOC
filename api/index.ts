@@ -20,7 +20,50 @@ app.get("/api/sites", async (req, res) => {
       console.error("Erro no Supabase:", error);
       return res.json([]);
     }
-    res.json(data);
+
+    // Lógica de Dependência (Motor de Diagnóstico Automático)
+    const sites = data || [];
+    const siteMap = new Map(sites.map(s => [s.ip, s]));
+
+    const processedSites = sites.map(site => {
+      if (site.status === 'up') return site;
+      
+      // Suporte a múltiplas dependências (separadas por vírgula)
+      const deps = (site.depende_de || '').split(',').map((ip: string) => ip.trim()).filter(Boolean);
+      
+      if (deps.length === 0) return site;
+
+      const downDependencies = deps
+        .map(depIp => siteMap.get(depIp))
+        .filter(dep => dep && dep.status === 'down');
+
+      if (downDependencies.length > 0) {
+        // Função para encontrar as causas raízes de forma recursiva
+        const findRoots = (currentSite: any): string[] => {
+          const deps = (currentSite.depende_de || '').split(',').map((ip: string) => ip.trim()).filter(Boolean);
+          const downDeps = deps.map(ip => siteMap.get(ip)).filter(d => d && d.status === 'down');
+          
+          if (downDeps.length === 0) {
+            return [currentSite.nome_site];
+          }
+          
+          return downDeps.flatMap(d => findRoots(d));
+        };
+
+        const allRoots = downDependencies.flatMap(dep => findRoots(dep));
+        const uniqueRoots = Array.from(new Set(allRoots));
+
+        return { 
+          ...site, 
+          status: 'dependente', 
+          causa_raiz: uniqueRoots.join(', ')
+        };
+      }
+
+      return site;
+    });
+
+    res.json(processedSites);
   } catch (err) {
     res.status(500).json({ error: "Erro interno" });
   }
@@ -168,7 +211,7 @@ app.get("/api/all-logs", async (req, res) => {
 
 // NOVO: Criar site manualmente
 app.post("/api/sites", async (req, res) => {
-  const { nome_site, ip, categoria, descricao } = req.body;
+  const { nome_site, ip, categoria, descricao, depende_de } = req.body;
   const cleanIp = String(ip).trim();
 
   if (!nome_site || !cleanIp) {
@@ -183,6 +226,7 @@ app.post("/api/sites", async (req, res) => {
         ip: cleanIp, 
         categoria: categoria || 'Site',
         descricao: descricao || '',
+        depende_de: depende_de || null,
         status: 'down', // Começa como down até o primeiro ping
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
