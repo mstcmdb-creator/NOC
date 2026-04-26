@@ -75,7 +75,7 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState(false);
 
-  const STATIC_PASSWORD = "admin"; // Pode ser alterado aqui ou via env no futuro
+  const STATIC_PASSWORD = "N0cNG2026#"; // Atualizado conforme solicitação
 
   useEffect(() => {
     const auth = localStorage.getItem('noc_authenticated');
