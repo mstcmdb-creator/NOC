@@ -327,7 +327,11 @@ export default function App() {
                     multiple 
                     value={editNode.depende_de.split(',').filter(Boolean)} 
                     onChange={e => {
-                      const values = Array.from(e.target.selectedOptions, option => option.value);
+                      const options = e.target.options;
+                      const values = [];
+                      for (let i = 0; i < options.length; i++) {
+                        if (options[i].selected) values.push(options[i].value);
+                      }
                       setEditNode({...editNode, depende_de: values.join(',')});
                     }} 
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all h-24"
@@ -381,7 +385,11 @@ export default function App() {
                     multiple 
                     value={newNode.depende_de.split(',').filter(Boolean)} 
                     onChange={e => {
-                      const values = Array.from(e.target.selectedOptions, option => option.value);
+                      const options = e.target.options;
+                      const values = [];
+                      for (let i = 0; i < options.length; i++) {
+                        if (options[i].selected) values.push(options[i].value);
+                      }
                       setNewNode({...newNode, depende_de: values.join(',')});
                     }} 
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all h-32"
@@ -700,6 +708,7 @@ export default function App() {
                                 key={site.id} 
                                 site={site} 
                                 type="up" 
+                                sites={sites}
                                 onSelect={() => handleSiteClick(site)} 
                                 onDelete={() => {}} // Desativado no dashboard
                               />
@@ -714,6 +723,7 @@ export default function App() {
                                 key={site.id} 
                                 site={site} 
                                 type={site.status === 'dependente' ? 'dependent' : 'down'} 
+                                sites={sites}
                                 onSelect={() => handleSiteClick(site)} 
                                 onDelete={() => {}} // Desativado no dashboard
                               />
@@ -867,7 +877,7 @@ function HeaderStat({ label, value, color = 'default', className = "" }: { label
   );
 }
 
-function SiteCard({ site, type, onSelect, onDelete }: { site: Site, type: 'up' | 'down' | 'dependent', key?: any, onSelect: () => void, onDelete: (e: React.MouseEvent) => void }) {
+function SiteCard({ site, type, sites, onSelect, onDelete }: { site: Site, type: 'up' | 'down' | 'dependent', sites: Site[], key?: any, onSelect: () => void, onDelete: (e: React.MouseEvent) => void }) {
   const isUp = type === 'up';
   const isDependent = type === 'dependent';
 
