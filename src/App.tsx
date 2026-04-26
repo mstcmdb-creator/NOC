@@ -539,7 +539,11 @@ export default function App() {
 
           <div className="space-y-1">
             <button 
-              onClick={() => setIsDashboardExpanded(!isDashboardExpanded)}
+              onClick={() => {
+                setActiveTab('dashboard');
+                setIsDashboardExpanded(!isDashboardExpanded);
+                if (activeTab !== 'dashboard') setIsMobileMenuOpen(false);
+              }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all font-bold text-sm ${
                 activeTab === 'dashboard' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'
               }`}
@@ -573,15 +577,6 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <NavItem 
-            icon={<LayoutDashboard className="w-5 h-5" />} 
-            label="Dashboard" 
-            active={activeTab === 'dashboard'} 
-            onClick={() => {
-              setActiveTab('dashboard');
-              setIsMobileMenuOpen(false);
-            }} 
-          />
           <NavItem 
             icon={<Monitor className="w-5 h-5" />} 
             label="Dispositivos" 
