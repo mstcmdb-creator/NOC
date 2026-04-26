@@ -19,7 +19,9 @@ import {
   FileText,
   Trash2,
   ChevronDown,
-  Map as MapIcon
+  Map as MapIcon,
+  Lock,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -69,6 +71,35 @@ export default function App() {
   const [editNode, setEditNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '' });
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(true);
   const [globalLogs, setGlobalLogs] = useState<any[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState(false);
+
+  const STATIC_PASSWORD = "admin"; // Pode ser alterado aqui ou via env no futuro
+
+  useEffect(() => {
+    const auth = localStorage.getItem('noc_authenticated');
+    if (auth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loginPassword === STATIC_PASSWORD) {
+      setIsAuthenticated(true);
+      localStorage.setItem('noc_authenticated', 'true');
+      setLoginError(false);
+    } else {
+      setLoginError(true);
+      setTimeout(() => setLoginError(false), 2000);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('noc_authenticated');
+  };
 
   const fetchData = async () => {
     try {
@@ -246,6 +277,69 @@ export default function App() {
 
   // Agrupar sites por categoria
   const categories = Array.from(new Set(sites.map(s => s.categoria || 'Site')));
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-950 p-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden p-10 border border-white/20">
+            <div className="flex flex-col items-center mb-10">
+              <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-black/20">
+                <Globe className="w-9 h-9 text-white" />
+              </div>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tighter">MERCURY-JS</h1>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">NOCng Security Gate</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-black transition-colors">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <input 
+                  required
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="Introduza a chave de acesso"
+                  className={`w-full pl-12 pr-4 py-4 bg-slate-50 border ${loginError ? 'border-rose-500 bg-rose-50' : 'border-slate-100'} rounded-2xl focus:ring-4 focus:ring-black/5 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-300`}
+                />
+              </div>
+
+              {loginError && (
+                <motion.p 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-xs font-bold text-rose-500 text-center uppercase tracking-widest"
+                >
+                  Chave incorreta. Tente novamente.
+                </motion.p>
+              )}
+
+              <button 
+                type="submit"
+                className="w-full py-4 bg-black text-white rounded-2xl font-bold hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-2"
+              >
+                Entrar no Dashboard
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </form>
+            
+            <div className="mt-10 pt-10 border-t border-slate-100 flex justify-center">
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest text-center">
+                Acesso restrito ao pessoal técnico.<br/>
+                Monitorização em Tempo Real.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
@@ -607,6 +701,13 @@ export default function App() {
             <FileText className="w-5 h-5 text-slate-400" />
             <span className="text-sm font-medium text-slate-600">Documentação</span>
           </div>
+          <button 
+            onClick={handleLogout}
+            className="w-full p-4 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 flex items-center gap-3 hover:bg-rose-100 transition-colors font-bold"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-sm">Sair do Sistema</span>
+          </button>
         </div>
       </aside>
 
