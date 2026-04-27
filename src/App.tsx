@@ -836,31 +836,12 @@ export default function App() {
               <Menu className="w-6 h-6" />
             </button>
             
-            <div className="hidden lg:flex gap-8 items-center border-r border-slate-100 pr-8">
+            <div className="hidden lg:flex gap-6 items-center border-r border-slate-100 pr-8">
               <HeaderStat label="TOTAL" value={sites.length} />
               <HeaderStat label="ONLINE" value={sites.filter(s => s.status === 'up').length} color="emerald" />
-            </div>
-
-            {/* Search Input */}
-            <div className="flex-1 max-w-xl relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-black transition-colors">
-                <Search className="w-4 h-4" />
-              </div>
-              <input 
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Pesquisar por nome, IP, categoria, descrição ou status..."
-                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-black/5 outline-none transition-all text-sm font-medium"
-              />
-              {searchTerm && (
-                <button 
-                  onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-300 hover:text-slate-900 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+              <HeaderStat label="OFFLINE" value={sites.filter(s => s.status === 'down').length} color="rose" />
+              <HeaderStat label="DEPENDENTE" value={sites.filter(s => s.status === 'dependente').length} color="amber" />
+              <HeaderStat label="CATEGORIAS" value={categories.length} color="default" />
             </div>
           </div>
 
@@ -882,8 +863,47 @@ export default function App() {
         </header>
 
         {/* Main View Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
-          <AnimatePresence mode="wait">
+        <main className="flex-1 overflow-y-auto bg-slate-50/50">
+          {/* Sub-Header: Search & Secondary Actions */}
+          <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="w-full max-w-2xl relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-black transition-colors">
+                <Search className="w-5 h-5" />
+              </div>
+              <input 
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Pesquisar dispositivos, IPs, categorias ou fabricantes..."
+                className="w-full pl-12 pr-12 py-3.5 bg-slate-100/50 border border-transparent rounded-2xl focus:bg-white focus:border-slate-200 focus:ring-8 focus:ring-black/5 outline-none transition-all text-sm font-bold placeholder:text-slate-400"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-300 hover:text-slate-900 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hidden sm:flex items-center gap-3">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Tempo Real Ativo</span>
+              </div>
+              <button 
+                onClick={() => fetchData()}
+                className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm text-slate-600"
+                title="Forçar Atualização"
+              >
+                <Activity className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 md:p-8">
+            <AnimatePresence mode="wait">
             {activeTab === 'dashboard' ? (
               <motion.div 
                 key="dashboard"
