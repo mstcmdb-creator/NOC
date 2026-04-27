@@ -50,6 +50,13 @@ interface Site {
   responsavel?: string;
 }
 
+const getOTRSLink = (ticketNum: string | undefined) => {
+  if (!ticketNum || !/^\d+$/.test(ticketNum)) return null;
+  // Equivalência: 093812 -> 71640. Offset = -22172
+  const internalId = parseInt(ticketNum, 10) - 22172;
+  return `https://suporte.mstelcom.net/otrs/index.pl?Action=AgentTicketZoom;TicketID=${internalId}`;
+};
+
 const formatTMRO = (seconds: number) => {
   if (!seconds || seconds === 0) return '0s';
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -762,7 +769,17 @@ export default function App() {
                           <p className="text-xs text-slate-500 mt-1">O dispositivo alterou o estado para {(log.status || 'unknown').toUpperCase()}.</p>
                           {(log.ticket_numero || log.responsavel) && (
                             <div className="mt-2 flex gap-3">
-                              {log.ticket_numero && <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100">Ticket #{log.ticket_numero}</span>}
+                              {log.ticket_numero && (
+                                <a 
+                                  href={getOTRSLink(log.ticket_numero) || '#'} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100 hover:bg-rose-100 transition-colors flex items-center gap-1"
+                                >
+                                  Ticket #{log.ticket_numero}
+                                  <ArrowRight className="w-2.5 h-2.5 opacity-50" />
+                                </a>
+                              )}
                               {log.responsavel && <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-lg border border-slate-100 italic">Resp: {log.responsavel}</span>}
                             </div>
                           )}
@@ -1329,10 +1346,17 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
                   </div>
                 )}
                 {site.ticket_numero && (
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 border border-rose-100 rounded-md">
+                  <a 
+                    href={getOTRSLink(site.ticket_numero) || '#'} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 border border-rose-100 rounded-md hover:bg-rose-100 transition-colors"
+                  >
                     <span className="text-[7px] font-black text-rose-400 uppercase tracking-tighter">Ticket</span>
                     <span className="text-[9px] font-bold text-rose-700">#{site.ticket_numero}</span>
-                  </div>
+                    <RefreshCw className="w-2 h-2 text-rose-300" />
+                  </a>
                 )}
               </div>
             )}
@@ -1434,7 +1458,17 @@ function LogRow({ time, device, event, status, color, user, ticket, responsavel 
       <td className="px-6 py-4 text-xs font-medium text-slate-500 font-mono">{time}</td>
       <td className="px-6 py-4">
         <span className="text-xs font-extrabold text-slate-900 tracking-tight block">{device}</span>
-        {ticket && <span className="text-[9px] font-bold text-rose-500 block mt-1">Ticket: #{ticket}</span>}
+        {ticket && (
+          <a 
+            href={getOTRSLink(ticket) || '#'} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[9px] font-bold text-rose-500 hover:underline inline-flex items-center gap-1 mt-1"
+          >
+            Ticket: #{ticket}
+            <ArrowRight className="w-2 h-2 opacity-50" />
+          </a>
+        )}
       </td>
       <td className="px-6 py-4">
         <span className="text-xs text-slate-600 block">{event}</span>
