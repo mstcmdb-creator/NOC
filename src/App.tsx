@@ -23,7 +23,9 @@ import {
   Lock,
   LogOut,
   Search,
-  X
+  X,
+  Pin,
+  PinOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -77,8 +79,32 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [pinnedSites, setPinnedSites] = useState<string[]>(() => JSON.parse(localStorage.getItem('pinned_sites') || '[]'));
+  const [pinnedCategories, setPinnedCategories] = useState<string[]>(() => JSON.parse(localStorage.getItem('pinned_categories') || '[]'));
 
   const STATIC_PASSWORD = "N0cNG2026#"; // Atualizado conforme solicitação
+
+  useEffect(() => {
+    localStorage.setItem('pinned_sites', JSON.stringify(pinnedSites));
+  }, [pinnedSites]);
+
+  useEffect(() => {
+    localStorage.setItem('pinned_categories', JSON.stringify(pinnedCategories));
+  }, [pinnedCategories]);
+
+  const togglePinSite = (ip: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPinnedSites(prev => 
+      prev.includes(ip) ? prev.filter(i => i !== ip) : [...prev, ip]
+    );
+  };
+
+  const togglePinCategory = (category: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPinnedCategories(prev => 
+      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
+    );
+  };
 
   useEffect(() => {
     const auth = localStorage.getItem('noc_authenticated');
@@ -290,8 +316,15 @@ export default function App() {
     );
   });
 
-  // Agrupar sites por categoria
-  const categories = Array.from(new Set(filteredSites.map(s => s.categoria || 'Site')));
+  // Agrupar sites por categoria e ordenar categorias (pinadas primeiro)
+  const categories = Array.from(new Set(filteredSites.map(s => s.categoria || 'Site')))
+    .sort((a, b) => {
+      const pinA = pinnedCategories.includes(a);
+      const pinB = pinnedCategories.includes(b);
+      if (pinA && !pinB) return -1;
+      if (!pinA && pinB) return 1;
+      return a.localeCompare(b);
+    });
 
   if (!isAuthenticated) {
     return (
@@ -680,15 +713,35 @@ export default function App() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden pl-11 space-y-1"
                 >
-                  {categories.map((cat: string) => (
-                    <button 
-                      key={cat}
-                      onClick={() => scrollToCategory(cat)}
-                      className="w-full text-left py-2 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-wider"
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                  {categories.map((cat: string) => {
+                    const downCount = sites.filter(s => (s.categoria || 'Site') === cat && (s.status === 'down' || s.status === 'dependente')).length;
+                    const isPinned = pinnedCategories.includes(cat);
+
+                    return (
+                      <div key={cat} className="flex items-center justify-between group/cat">
+                        <button 
+                          onClick={() => scrollToCategory(cat)}
+                          className="flex-1 text-left py-2 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-wider flex items-center gap-2"
+                        >
+                          {isPinned && <Pin className="w-3 h-3 text-blue-500 fill-blue-500" />}
+                          {cat}
+                        </button>
+                        <div className="flex items-center gap-2 pr-2">
+                          {downCount > 0 && (
+                            <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
+                              {downCount}
+                            </span>
+                          )}
+                          <button 
+                            onClick={(e) => togglePinCategory(cat, e)}
+                            className={`p-1 rounded-md transition-all opacity-0 group-hover/cat:opacity-100 ${isPinned ? 'text-blue-500 opacity-100' : 'text-slate-300 hover:text-slate-500'}`}
+                          >
+                            <Pin className={`w-3 h-3 ${isPinned ? 'fill-blue-500' : ''}`} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -795,7 +848,15 @@ export default function App() {
                 className="space-y-12"
               >
                 {categories.map(category => {
-                  const categorySites = filteredSites.filter(s => (s.categoria || 'Site') === category);
+                  const categorySites = filteredSites
+                    .filter(s => (s.categoria || 'Site') === category)
+                    .sort((a, b) => {
+                      const pinA = pinnedSites.includes(a.ip);
+                      const pinB = pinnedSites.includes(b.ip);
+                      if (pinA && !pinB) return -1;
+                      if (!pinA && pinB) return 1;
+                      return 0;
+                    });
                   const sitesOnline = categorySites.filter(s => s.status === 'up');
                   const sitesDependent = categorySites.filter(s => s.status === 'dependente');
                   const sitesOffline = categorySites.filter(s => s.status === 'down');
@@ -816,7 +877,15 @@ export default function App() {
                     <div key={category} id={`category-${category}`} className="space-y-6 pt-8 first:pt-0">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
                         <div className="flex items-center gap-4">
-                          <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
+                            <button 
+                              onClick={(e) => togglePinCategory(category, e)}
+                              className={`p-1.5 rounded-lg transition-all ${pinnedCategories.includes(category) ? 'text-blue-500 bg-blue-50' : 'text-slate-300 hover:text-slate-900'}`}
+                            >
+                              <Pin className={`w-5 h-5 ${pinnedCategories.includes(category) ? 'fill-blue-500' : ''}`} />
+                            </button>
+                          </div>
                           <div className="flex flex-wrap gap-2">
                             <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
                               <span className="text-[9px] font-bold text-slate-400 uppercase">Agora</span>
@@ -847,6 +916,8 @@ export default function App() {
                                 sites={sites}
                                 onSelect={() => handleSiteClick(site)} 
                                 onDelete={() => {}} // Desativado no dashboard
+                                isPinned={pinnedSites.includes(site.ip)}
+                                onTogglePin={(e) => togglePinSite(site.ip, e)}
                               />
                             ))}
                           </AnimatePresence>
@@ -862,6 +933,8 @@ export default function App() {
                                 sites={sites}
                                 onSelect={() => handleSiteClick(site)} 
                                 onDelete={() => {}} // Desativado no dashboard
+                                isPinned={pinnedSites.includes(site.ip)}
+                                onTogglePin={(e) => togglePinSite(site.ip, e)}
                               />
                             ))}
                           </AnimatePresence>
@@ -1013,7 +1086,7 @@ function HeaderStat({ label, value, color = 'default', className = "" }: { label
   );
 }
 
-function SiteCard({ site, type, sites, onSelect, onDelete }: { site: Site, type: 'up' | 'down' | 'dependent', sites: Site[], key?: any, onSelect: () => void, onDelete: (e: React.MouseEvent) => void }) {
+function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin }: { site: Site, type: 'up' | 'down' | 'dependent', sites: Site[], key?: any, onSelect: () => void, onDelete: (e: React.MouseEvent) => void, isPinned: boolean, onTogglePin: (e: React.MouseEvent) => void }) {
   const isUp = type === 'up';
   const isDependent = type === 'dependent';
 
@@ -1026,6 +1099,8 @@ function SiteCard({ site, type, sites, onSelect, onDelete }: { site: Site, type:
       whileHover={{ scale: 1.01 }}
       onClick={onSelect}
       className={`p-4 md:p-6 rounded-2xl bg-white border border-slate-200 flex items-center gap-4 md:gap-6 relative group transition-all shadow-sm cursor-pointer ${
+        isPinned ? 'ring-2 ring-blue-500/20 border-blue-200' : ''
+      } ${
         isUp 
           ? 'neon-border-green-light border-l-emerald-500' 
           : isDependent 
@@ -1033,6 +1108,14 @@ function SiteCard({ site, type, sites, onSelect, onDelete }: { site: Site, type:
             : 'animate-pulse-red-soft border-l-4 border-l-rose-500'
       }`}
     >
+      {/* Pin Button */}
+      <button 
+        onClick={onTogglePin}
+        className={`absolute top-4 right-4 p-1.5 rounded-lg transition-all z-10 ${isPinned ? 'text-blue-500 bg-blue-50 opacity-100' : 'text-slate-300 hover:text-slate-900 opacity-0 group-hover:opacity-100'}`}
+      >
+        <Pin className={`w-4 h-4 ${isPinned ? 'fill-blue-500' : ''}`} />
+      </button>
+
       <div className={`w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 border ${
         isUp 
           ? 'bg-emerald-50 border-emerald-100' 
