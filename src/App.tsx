@@ -43,6 +43,8 @@ interface Site {
   causa_raiz?: string;
   descricao?: string;
   fabricante?: string;
+  ticket_numero?: string;
+  responsavel?: string;
 }
 
 const formatTMRO = (seconds: number) => {
@@ -82,13 +84,13 @@ export default function App() {
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [siteLogs, setSiteLogs] = useState<any[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '', fabricante: '' });
+  const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '', fabricante: '', ticket_numero: '', responsavel: '' });
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
-  const [editNode, setEditNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '', fabricante: '' });
+  const [editNode, setEditNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '', fabricante: '', ticket_numero: '', responsavel: '' });
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(true);
   const [globalLogs, setGlobalLogs] = useState<any[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -237,7 +239,9 @@ export default function App() {
       categoria: site.categoria,
       descricao: site.descricao || '',
       depende_de: site.depende_de || '',
-      fabricante: site.fabricante || ''
+      fabricante: site.fabricante || '',
+      ticket_numero: site.ticket_numero || '',
+      responsavel: site.responsavel || ''
     });
     setIsEditModalOpen(true);
   };
@@ -514,6 +518,16 @@ export default function App() {
                     ))}
                   </select>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nº Ticket</label>
+                    <input type="text" value={editNode.ticket_numero} onChange={e => setEditNode({...editNode, ticket_numero: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" placeholder="Ex: 8892" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Responsável</label>
+                    <input type="text" value={editNode.responsavel} onChange={e => setEditNode({...editNode, responsavel: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" placeholder="Nome" />
+                  </div>
+                </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Descrição</label>
                   <textarea value={editNode.descricao} onChange={e => setEditNode({...editNode, descricao: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all h-20 resize-none" />
@@ -585,6 +599,16 @@ export default function App() {
                       <option key={s.ip} value={s.ip}>{s.nome_site} ({s.ip})</option>
                     ))}
                   </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nº Ticket</label>
+                    <input type="text" value={newNode.ticket_numero} onChange={e => setNewNode({...newNode, ticket_numero: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" placeholder="Ex: 8892" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Responsável</label>
+                    <input type="text" value={newNode.responsavel} onChange={e => setNewNode({...newNode, responsavel: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" placeholder="Nome" />
+                  </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Descrição Técnico / Observações</label>
@@ -667,6 +691,12 @@ export default function App() {
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-1">O dispositivo alterou o estado para {(log.status || 'unknown').toUpperCase()}.</p>
+                          {(log.ticket_numero || log.responsavel) && (
+                            <div className="mt-2 flex gap-3">
+                              {log.ticket_numero && <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100">Ticket #{log.ticket_numero}</span>}
+                              {log.responsavel && <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-lg border border-slate-100 italic">Resp: {log.responsavel}</span>}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))
@@ -1026,6 +1056,8 @@ export default function App() {
                             status={log.status === 'up' ? 'ONLINE' : 'OFFLINE'}
                             color={log.status === 'up' ? 'emerald' : 'rose'}
                             user="MikroTik"
+                            ticket={log.ticket_numero}
+                            responsavel={log.responsavel}
                           />
                         ))}
                       </tbody>
@@ -1216,6 +1248,23 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
               {site.status === 'down' && <span className="text-rose-500 font-bold ml-1">(TIMEOUT)</span>}
               {site.status === 'dependente' && <span className="text-amber-500 font-bold ml-1">(DEPENDENTE)</span>}
             </p>
+
+            {(site.ticket_numero || site.responsavel) && !isUp && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {site.ticket_numero && (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 border border-rose-100 rounded-md">
+                    <span className="text-[7px] font-black text-rose-400 uppercase tracking-tighter">Ticket</span>
+                    <span className="text-[9px] font-bold text-rose-700">#{site.ticket_numero}</span>
+                  </div>
+                )}
+                {site.responsavel && (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md">
+                    <User className="w-2.5 h-2.5 text-slate-400" />
+                    <span className="text-[9px] font-bold text-slate-700">{site.responsavel}</span>
+                  </div>
+                )}
+              </div>
+            )}
             {!isUp && site.depende_de && (
               <p className="text-[9px] text-slate-400 mt-1 italic break-words leading-normal">
                 Depende de: {site.depende_de.split(',').map(ip => sites.find(s => s.ip === ip)?.nome_site || ip).join(', ')}
@@ -1279,20 +1328,27 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
   );
 }
 
-function LogRow({ time, device, event, status, color, user }: any) {
+function LogRow({ time, device, event, status, color, user, ticket, responsavel }: any) {
   const colors = {
     emerald: 'bg-emerald-100 text-emerald-700',
-    rose: 'bg-rose-100 text-rose-700'
+    rose: 'bg-rose-100 text-rose-700',
+    amber: 'bg-amber-100 text-amber-700'
   };
 
   return (
     <tr className="hover:bg-slate-50/50 transition-colors">
       <td className="px-6 py-4 text-xs font-medium text-slate-500 font-mono">{time}</td>
-      <td className="px-6 py-4 text-xs font-extrabold text-slate-900 tracking-tight">{device}</td>
-      <td className="px-6 py-4 text-xs text-slate-600">{event}</td>
+      <td className="px-6 py-4">
+        <span className="text-xs font-extrabold text-slate-900 tracking-tight block">{device}</span>
+        {ticket && <span className="text-[9px] font-bold text-rose-500 block mt-1">Ticket: #{ticket}</span>}
+      </td>
+      <td className="px-6 py-4">
+        <span className="text-xs text-slate-600 block">{event}</span>
+        {responsavel && <span className="text-[9px] text-slate-400 block mt-1">Resp: {responsavel}</span>}
+      </td>
       <td className="px-6 py-4">
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${colors[color as keyof typeof colors]}`}>
-          <span className={`w-1 h-1 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+          <span className={`w-1 h-1 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : color === 'amber' ? 'bg-amber-500' : 'bg-rose-500'}`}></span>
           {status}
         </span>
       </td>

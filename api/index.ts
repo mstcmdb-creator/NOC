@@ -140,6 +140,8 @@ app.get("/api/update-status", async (req, res) => {
         total_incidentes_resolvidos: totalIncidentes,
         total_tempo_resolucao_segundos: totalTempoResolucao,
         tmro_segundos: tmroSegundos,
+        ticket_numero: oldSite?.ticket_numero || '',
+        responsavel: oldSite?.responsavel || '',
         status_desde: (status !== oldSite?.status) ? new Date().toISOString() : (oldSite?.status_desde || new Date().toISOString()),
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
@@ -167,7 +169,7 @@ app.get("/api/site-logs", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('status_history')
-      .select('*')
+      .select('id, site_ip, status, changed_at, ticket_numero, responsavel')
       .eq('site_ip', ip as string)
       .order('changed_at', { ascending: false })
       .limit(50);
@@ -192,6 +194,8 @@ app.get("/api/all-logs", async (req, res) => {
         site_ip,
         status,
         changed_at,
+        ticket_numero,
+        responsavel,
         sites (
           nome_site
         )
@@ -211,7 +215,7 @@ app.get("/api/all-logs", async (req, res) => {
 
 // NOVO: Criar site manualmente
 app.post("/api/sites", async (req, res) => {
-  const { nome_site, ip, categoria, descricao, depende_de, fabricante } = req.body;
+  const { nome_site, ip, categoria, descricao, depende_de, fabricante, ticket_numero, responsavel } = req.body;
   const cleanIp = String(ip).trim();
 
   if (!nome_site || !cleanIp) {
@@ -228,6 +232,8 @@ app.post("/api/sites", async (req, res) => {
         descricao: descricao || '',
         depende_de: depende_de || null,
         fabricante: fabricante || '',
+        ticket_numero: ticket_numero || '',
+        responsavel: responsavel || '',
         status: 'down', // Começa como down até o primeiro ping
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
@@ -241,7 +247,7 @@ app.post("/api/sites", async (req, res) => {
 
 // NOVO: Atualizar site
 app.post("/api/sites/update", async (req, res) => {
-  const { nome_site, ip, categoria, descricao, depende_de, fabricante, old_ip } = req.body;
+  const { nome_site, ip, categoria, descricao, depende_de, fabricante, ticket_numero, responsavel, old_ip } = req.body;
   
   try {
     const { data, error } = await supabase
@@ -252,7 +258,9 @@ app.post("/api/sites/update", async (req, res) => {
         categoria, 
         descricao, 
         depende_de,
-        fabricante
+        fabricante,
+        ticket_numero,
+        responsavel
       })
       .eq('ip', old_ip);
 
