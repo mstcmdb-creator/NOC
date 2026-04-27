@@ -836,12 +836,11 @@ export default function App() {
               <Menu className="w-6 h-6" />
             </button>
             
-            <div className="hidden lg:flex gap-6 items-center border-r border-slate-100 pr-8">
+            <div className="flex gap-4 md:gap-6 items-center border-r border-slate-100 pr-4 md:pr-8 overflow-x-auto no-scrollbar">
               <HeaderStat label="TOTAL" value={sites.length} />
-              <HeaderStat label="ONLINE" value={sites.filter(s => s.status === 'up').length} color="emerald" />
-              <HeaderStat label="OFFLINE" value={sites.filter(s => s.status === 'down').length} color="rose" />
-              <HeaderStat label="DEPENDENTE" value={sites.filter(s => s.status === 'dependente').length} color="amber" />
-              <HeaderStat label="CATEGORIAS" value={categories.length} color="default" />
+              <HeaderStat label="UP" value={sites.filter(s => s.status === 'up').length} color="emerald" />
+              <HeaderStat label="DOWN" value={sites.filter(s => s.status === 'down').length} color="rose" />
+              <HeaderStat className="hidden sm:flex" label="DEP" value={sites.filter(s => s.status === 'dependente').length} color="amber" />
             </div>
           </div>
 
@@ -865,17 +864,17 @@ export default function App() {
         {/* Main View Area */}
         <main className="flex-1 overflow-y-auto bg-slate-50/50">
           {/* Sub-Header: Search & Secondary Actions */}
-          <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3 md:py-4 flex flex-col md:flex-row gap-3 md:gap-4 items-center justify-between">
             <div className="w-full max-w-2xl relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-black transition-colors">
-                <Search className="w-5 h-5" />
+                <Search className="w-4 h-4 md:w-5 md:h-5" />
               </div>
               <input 
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Pesquisar dispositivos, IPs, categorias ou fabricantes..."
-                className="w-full pl-12 pr-12 py-3.5 bg-slate-100/50 border border-transparent rounded-2xl focus:bg-white focus:border-slate-200 focus:ring-8 focus:ring-black/5 outline-none transition-all text-sm font-bold placeholder:text-slate-400"
+                placeholder="Pesquisar dispositivos, IPs, categorias..."
+                className="w-full pl-11 pr-11 py-2.5 md:py-3.5 bg-slate-100/50 border border-transparent rounded-xl md:rounded-2xl focus:bg-white focus:border-slate-200 focus:ring-8 focus:ring-black/5 outline-none transition-all text-xs md:text-sm font-bold placeholder:text-slate-400"
               />
               {searchTerm && (
                 <button 
@@ -1154,9 +1153,9 @@ function HeaderStat({ label, value, color = 'default', className = "" }: { label
   };
 
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <span className="text-[10px] font-bold text-slate-400 tracking-widest">{label}</span>
-      <span className={`text-2xl font-black ${colors[color]}`}>{value.toLocaleString('pt-PT')}</span>
+    <div className={`flex flex-col gap-0 md:gap-1 ${className}`}>
+      <span className="text-[8px] md:text-[10px] font-bold text-slate-400 tracking-widest">{label}</span>
+      <span className={`text-base md:text-2xl font-black ${colors[color]}`}>{value.toLocaleString('pt-PT')}</span>
     </div>
   );
 }
@@ -1173,7 +1172,7 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ scale: 1.01 }}
       onClick={onSelect}
-      className={`p-4 md:p-6 rounded-2xl bg-white border border-slate-200 flex items-center gap-4 md:gap-6 relative group transition-all shadow-sm cursor-pointer ${
+      className={`p-3 md:p-6 rounded-xl md:rounded-2xl bg-white border border-slate-200 flex items-center gap-3 md:gap-6 relative group transition-all shadow-sm cursor-pointer ${
         isPinned ? 'ring-2 ring-blue-500/20 border-blue-200' : ''
       } ${
         isUp 
@@ -1209,7 +1208,7 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
       <div className="flex-1 min-w-0">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div className="min-w-0 flex-1 w-full">
-            <h4 className="font-bold text-slate-900 break-words tracking-tight leading-tight mb-1">
+            <h4 className="font-bold text-slate-900 break-words tracking-tight leading-tight mb-0.5 text-xs md:text-base">
               {site.nome_site}
             </h4>
             <p className="text-xs font-mono text-slate-400 mt-0.5 truncate">
@@ -1245,29 +1244,31 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
             )}
           </div>
 
-          <div className="text-right shrink-0 w-full sm:w-auto flex flex-col items-end sm:border-l sm:border-slate-100 sm:pl-4">
-            <span className="block text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-1 whitespace-nowrap">
-              {isUp ? 'Operacional desde' : isDependent ? 'Em espera desde' : 'Fora de serviço desde'}
-            </span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded inline-block whitespace-nowrap ${
-              isUp 
-                ? 'text-slate-700 bg-slate-100' 
-                : isDependent
-                  ? 'text-amber-600 bg-amber-100'
-                  : 'text-rose-600 bg-rose-100 animate-pulse'
-            }`}>
-              {new Date(site.status_desde || site.ultima_verificacao).toLocaleString('pt-PT')}
-            </span>
+          <div className="text-right shrink-0 w-full sm:w-auto flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-0 sm:border-l sm:border-slate-100 sm:pl-4">
+            <div className="flex flex-col items-start sm:items-end">
+              <span className="block text-[6px] md:text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 whitespace-nowrap">
+                {isUp ? 'Operacional' : 'Desde'}
+              </span>
+              <span className={`text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 rounded inline-block whitespace-nowrap ${
+                isUp 
+                  ? 'text-slate-700 bg-slate-100' 
+                  : isDependent
+                    ? 'text-amber-600 bg-amber-100'
+                    : 'text-rose-600 bg-rose-100 animate-pulse'
+              }`}>
+                {new Date(site.status_desde || site.ultima_verificacao).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
             
-            <div className="mt-3 flex flex-row sm:flex-col items-center sm:items-end gap-3 sm:gap-1 w-full justify-end">
+            <div className="mt-0 sm:mt-2 flex flex-row sm:flex-col items-center sm:items-end gap-2 md:gap-1">
               <div className="flex items-center gap-1">
-                <span className="text-[8px] font-bold text-slate-300 uppercase">SLA</span>
-                <span className="text-[9px] font-black text-slate-400">{site.uptime_sla?.toFixed(2)}%</span>
+                <span className="text-[7px] md:text-[8px] font-bold text-slate-300 uppercase">SLA</span>
+                <span className="text-[8px] md:text-[9px] font-black text-slate-400">{site.uptime_sla?.toFixed(1)}%</span>
               </div>
               {site.tmro_segundos > 0 && (
                 <div className="flex items-center gap-1">
-                  <span className="text-[8px] font-bold text-blue-200 uppercase tracking-tighter">TMRO</span>
-                  <span className="text-[9px] font-black text-blue-400">{formatTMRO(site.tmro_segundos)}</span>
+                  <span className="text-[7px] md:text-[8px] font-bold text-blue-200 uppercase tracking-tighter">TMRO</span>
+                  <span className="text-[8px] md:text-[9px] font-black text-blue-400">{formatTMRO(site.tmro_segundos)}</span>
                 </div>
               )}
             </div>
