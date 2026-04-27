@@ -1337,15 +1337,6 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
               </div>
             )}
             
-            {!isUp && !site.responsavel && (
-              <button 
-                onClick={(e) => onAck(site, e)}
-                className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-200"
-              >
-                <HandMetal className="w-3.5 h-3.5" />
-                Reconhecer Falha
-              </button>
-            )}
             {!isUp && site.depende_de && (
               <p className="text-[9px] text-slate-400 mt-1 italic break-words leading-normal">
                 Depende de: {site.depende_de.split(',').map(ip => sites.find(s => s.ip === ip)?.nome_site || ip).join(', ')}
@@ -1360,8 +1351,30 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
               </div>
             )}
             
-            {/* Vendor Badge */}
-            {getVendorLogo(site.fabricante, site.nome_site) && (
+            {/* Acknowledge Button & Vendor Badge Inline */}
+            {!isUp && (
+              <div className="mt-4 flex items-center justify-end gap-3">
+                {!site.responsavel && (
+                  <button 
+                    onClick={(e) => onAck(site, e)}
+                    className="px-3 py-1.5 bg-rose-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-200/50"
+                  >
+                    Reconhecer Falha
+                  </button>
+                )}
+                {getVendorLogo(site.fabricante, site.nome_site) && (
+                  <div className="w-6 h-6 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center overflow-hidden p-1 shrink-0">
+                    <img 
+                      src={getVendorLogo(site.fabricante, site.nome_site)!} 
+                      alt="Vendor" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isUp && getVendorLogo(site.fabricante, site.nome_site) && (
               <div className="mt-4 flex justify-end">
                 <div className="w-6 h-6 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center overflow-hidden p-1">
                   <img 
@@ -1377,7 +1390,7 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
           <div className="text-right shrink-0 w-full sm:w-auto flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-0 sm:border-l sm:border-slate-100 sm:pl-4">
             <div className="flex flex-col items-start sm:items-end">
               <span className="block text-[6px] md:text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 whitespace-nowrap">
-                {isUp ? 'Operacional' : 'Desde'}
+                {isUp ? 'Operacional desde' : isDependent ? 'Em espera desde' : 'Fora de serviço desde'}
               </span>
               <span className={`text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 rounded inline-block whitespace-nowrap ${
                 isUp 
