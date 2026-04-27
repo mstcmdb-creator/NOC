@@ -1049,21 +1049,23 @@ function SiteCard({ site, type, sites, onSelect, onDelete }: { site: Site, type:
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-start">
-          <div>
-            <h4 className="font-bold text-slate-900 break-words tracking-tight leading-tight mb-1">{site.nome_site}</h4>
-            <p className="text-xs font-mono text-slate-400 mt-0.5">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div className="min-w-0 flex-1 w-full">
+            <h4 className="font-bold text-slate-900 break-words tracking-tight leading-tight mb-1">
+              {site.nome_site}
+            </h4>
+            <p className="text-xs font-mono text-slate-400 mt-0.5 truncate">
               {site.ip} 
               {site.status === 'down' && <span className="text-rose-500 font-bold ml-1">(TIMEOUT)</span>}
               {site.status === 'dependente' && <span className="text-amber-500 font-bold ml-1">(DEPENDENTE)</span>}
             </p>
             {!isUp && site.depende_de && (
-              <p className="text-[9px] text-slate-400 mt-1 italic break-words leading-normal max-w-full">
+              <p className="text-[9px] text-slate-400 mt-1 italic break-words leading-normal">
                 Depende de: {site.depende_de.split(',').map(ip => sites.find(s => s.ip === ip)?.nome_site || ip).join(', ')}
               </p>
             )}
             {isDependent && site.causa_raiz && (
-              <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-xl w-full">
                 <p className="text-[10px] font-bold text-amber-700 uppercase tracking-tight flex items-start gap-2 break-words leading-relaxed">
                   <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                   <span>Falha causada por dependência do {site.causa_raiz}</span>
@@ -1071,11 +1073,12 @@ function SiteCard({ site, type, sites, onSelect, onDelete }: { site: Site, type:
               </div>
             )}
           </div>
-          <div className="text-right shrink-0 ml-4">
+
+          <div className="text-right shrink-0 w-full sm:w-auto flex flex-col items-end sm:border-l sm:border-slate-100 sm:pl-4">
             <span className="block text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-1 whitespace-nowrap">
               {isUp ? 'Operacional desde' : isDependent ? 'Em espera desde' : 'Fora de serviço desde'}
             </span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded inline-block whitespace-nowrap ${
               isUp 
                 ? 'text-slate-700 bg-slate-100' 
                 : isDependent
@@ -1084,7 +1087,8 @@ function SiteCard({ site, type, sites, onSelect, onDelete }: { site: Site, type:
             }`}>
               {new Date(site.status_desde || site.ultima_verificacao).toLocaleString('pt-PT')}
             </span>
-            <div className="mt-2 flex flex-col items-end gap-1">
+            
+            <div className="mt-3 flex flex-row sm:flex-col items-center sm:items-end gap-3 sm:gap-1 w-full justify-end">
               <div className="flex items-center gap-1">
                 <span className="text-[8px] font-bold text-slate-300 uppercase">SLA</span>
                 <span className="text-[9px] font-black text-slate-400">{site.uptime_sla?.toFixed(2)}%</span>
