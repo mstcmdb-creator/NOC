@@ -21,7 +21,9 @@ import {
   ChevronDown,
   Map as MapIcon,
   Lock,
-  LogOut
+  LogOut,
+  Search,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -74,6 +76,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const STATIC_PASSWORD = "N0cNG2026#"; // Atualizado conforme solicitação
 
@@ -275,8 +278,20 @@ export default function App() {
     };
   }, []);
 
+  // Lógica de Filtragem
+  const filteredSites = sites.filter(site => {
+    const search = searchTerm.toLowerCase();
+    return (
+      site.nome_site?.toLowerCase().includes(search) ||
+      site.ip?.toLowerCase().includes(search) ||
+      site.categoria?.toLowerCase().includes(search) ||
+      site.descricao?.toLowerCase().includes(search) ||
+      site.status?.toLowerCase().includes(search)
+    );
+  });
+
   // Agrupar sites por categoria
-  const categories = Array.from(new Set(sites.map(s => s.categoria || 'Site')));
+  const categories = Array.from(new Set(filteredSites.map(s => s.categoria || 'Site')));
 
   if (!isAuthenticated) {
     return (
@@ -715,23 +730,43 @@ export default function App() {
       <div className="flex-1 flex flex-col relative overflow-hidden">
         {/* Top Header */}
         <header className="h-20 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex gap-4 md:gap-12 items-center overflow-x-auto no-scrollbar scroll-smooth">
+          <div className="flex gap-4 md:gap-12 items-center flex-1 overflow-hidden">
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
               className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg"
             >
               <Menu className="w-6 h-6" />
             </button>
-            <HeaderStat label="TOTAL" value={sites.length} />
-            <div className="w-px h-8 bg-slate-200 shrink-0"></div>
-            <HeaderStat label="ONLINE" value={sites.filter(s => s.status === 'up').length} color="emerald" />
-            <div className="w-px h-8 bg-slate-200 shrink-0 hidden sm:block"></div>
-            <HeaderStat label="DEPENDENTE" value={sites.filter(s => s.status === 'dependente').length} color="amber" className="hidden sm:flex" />
-            <div className="w-px h-8 bg-slate-200 shrink-0 hidden sm:block"></div>
-            <HeaderStat label="OFFLINE" value={sites.filter(s => s.status === 'down').length} color="rose" className="hidden sm:flex" />
+            
+            <div className="hidden lg:flex gap-8 items-center border-r border-slate-100 pr-8">
+              <HeaderStat label="TOTAL" value={sites.length} />
+              <HeaderStat label="ONLINE" value={sites.filter(s => s.status === 'up').length} color="emerald" />
+            </div>
+
+            {/* Search Input */}
+            <div className="flex-1 max-w-xl relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-black transition-colors">
+                <Search className="w-4 h-4" />
+              </div>
+              <input 
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Pesquisar por nome, IP, categoria, descrição ou status..."
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-black/5 outline-none transition-all text-sm font-medium"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-300 hover:text-slate-900 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-6">
+          <div className="flex items-center gap-2 md:gap-6 ml-4">
             <button className="p-2 text-slate-400 hover:text-slate-600 relative">
               <Bell className="w-6 h-6" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
@@ -760,7 +795,7 @@ export default function App() {
                 className="space-y-12"
               >
                 {categories.map(category => {
-                  const categorySites = sites.filter(s => (s.categoria || 'Site') === category);
+                  const categorySites = filteredSites.filter(s => (s.categoria || 'Site') === category);
                   const sitesOnline = categorySites.filter(s => s.status === 'up');
                   const sitesDependent = categorySites.filter(s => s.status === 'dependente');
                   const sitesOffline = categorySites.filter(s => s.status === 'down');
@@ -896,7 +931,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {sites.map(site => (
+                        {filteredSites.map(site => (
                           <tr key={site.id} className="hover:bg-slate-50/50 transition-colors group">
                             <td className="px-8 py-5">
                               <span className="font-bold text-slate-900 block">{site.nome_site}</span>
