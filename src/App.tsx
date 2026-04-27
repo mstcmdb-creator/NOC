@@ -340,7 +340,7 @@ export default function App() {
       const pinB = pinnedCategories.includes(b);
       if (pinA && !pinB) return -1;
       if (!pinA && pinB) return 1;
-      return a.localeCompare(b);
+      return (a as string).localeCompare(b as string);
     });
 
   if (!isAuthenticated) {
@@ -943,10 +943,10 @@ export default function App() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4">
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
-                            <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category}</h2>
+                            <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">{category as string}</h2>
                             <button 
-                              onClick={(e) => togglePinCategory(category, e)}
-                              className={`p-1.5 rounded-lg transition-all ${pinnedCategories.includes(category) ? 'text-blue-500 bg-blue-50' : 'text-slate-300 hover:text-slate-900'}`}
+                              onClick={(e) => togglePinCategory(category as string, e)}
+                              className={`p-1.5 rounded-lg transition-all ${pinnedCategories.includes(category as string) ? 'text-blue-500 bg-blue-50' : 'text-slate-300 hover:text-slate-900'}`}
                             >
                               <Pin className={`w-5 h-5 ${pinnedCategories.includes(category) ? 'fill-blue-500' : ''}`} />
                             </button>
@@ -1122,6 +1122,7 @@ export default function App() {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </main>
       </div>
     </div>
