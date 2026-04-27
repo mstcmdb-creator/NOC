@@ -25,7 +25,10 @@ import {
   Search,
   X,
   Pin,
-  PinOff
+  PinOff,
+  ShieldCheck,
+  HandMetal,
+  User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -99,6 +102,9 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [pinnedSites, setPinnedSites] = useState<string[]>(() => JSON.parse(localStorage.getItem('pinned_sites') || '[]'));
   const [pinnedCategories, setPinnedCategories] = useState<string[]>(() => JSON.parse(localStorage.getItem('pinned_categories') || '[]'));
+  const [isAckModalOpen, setIsAckModalOpen] = useState(false);
+  const [ackNode, setAckNode] = useState<Site | null>(null);
+  const [ackData, setAckData] = useState({ responsavel: '', ticket_numero: '' });
 
   const STATIC_PASSWORD = "N0cNG2026#"; // Atualizado conforme solicitação
 
@@ -229,6 +235,37 @@ export default function App() {
       console.error("Erro ao editar node:", error);
       alert(`Erro crítico: ${error.message}`);
     }
+  };
+
+  const handleAckNode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ackNode) return;
+    try {
+      const response = await fetch('/api/sites/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          ...ackNode, 
+          responsavel: ackData.responsavel, 
+          ticket_numero: ackData.ticket_numero,
+          old_ip: ackNode.ip 
+        })
+      });
+      if (response.ok) {
+        setIsAckModalOpen(false);
+        setAckData({ responsavel: '', ticket_numero: '' });
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Erro ao reconhecer falha:", error);
+    }
+  };
+
+  const openAckModal = (site: Site, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAckNode(site);
+    setAckData({ responsavel: '', ticket_numero: site.ticket_numero || '' });
+    setIsAckModalOpen(true);
   };
 
   const openEditModal = (site: Site) => {
@@ -624,6 +661,38 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* MODAL: Reconhecer Falha */}
+      <AnimatePresence>
+        {isAckModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center z-[110] p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAckModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden p-8 border border-white/20">
+              <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center mb-6 border border-rose-100">
+                <ShieldCheck className="w-6 h-6 text-rose-500" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">Reconhecer Falha</h3>
+              <p className="text-xs text-slate-500 mb-6 font-medium">Introduza quem está a tratar deste incidente e o número do ticket associado.</p>
+              
+              <form onSubmit={handleAckNode} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Técnico Responsável</label>
+                  <input required autoFocus type="text" value={ackData.responsavel} onChange={e => setAckData({...ackData, responsavel: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" placeholder="Nome do técnico" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Número do Ticket (Opcional)</label>
+                  <input type="text" value={ackData.ticket_numero} onChange={e => setAckData({...ackData, ticket_numero: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all" placeholder="Ex: 8823" />
+                </div>
+                
+                <div className="pt-4 flex gap-3">
+                  <button type="button" onClick={() => setIsAckModalOpen(false)} className="flex-1 p-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Sair</button>
+                  <button type="submit" className="flex-1 p-3 bg-black text-white rounded-xl font-bold hover:opacity-90 transition-opacity">Confirmar</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* MODAL: Histórico */}
       <AnimatePresence>
         {selectedSite && (
@@ -1012,6 +1081,7 @@ export default function App() {
                                 onDelete={() => {}} // Desativado no dashboard
                                 isPinned={pinnedSites.includes(site.ip)}
                                 onTogglePin={(e) => togglePinSite(site.ip, e)}
+                                onAck={openAckModal}
                               />
                             ))}
                           </AnimatePresence>
@@ -1029,6 +1099,7 @@ export default function App() {
                                 onDelete={() => {}} // Desativado no dashboard
                                 isPinned={pinnedSites.includes(site.ip)}
                                 onTogglePin={(e) => togglePinSite(site.ip, e)}
+                                onAck={openAckModal}
                               />
                             ))}
                           </AnimatePresence>
@@ -1192,7 +1263,7 @@ function HeaderStat({ label, value, color = 'default', className = "" }: { label
   );
 }
 
-function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin }: { site: Site, type: 'up' | 'down' | 'dependent', sites: Site[], key?: any, onSelect: () => void, onDelete: (e: React.MouseEvent) => void, isPinned: boolean, onTogglePin: (e: React.MouseEvent) => void }) {
+function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin, onAck }: { site: Site, type: 'up' | 'down' | 'dependent', sites: Site[], key?: any, onSelect: () => void, onDelete: (e: React.MouseEvent) => void, isPinned: boolean, onTogglePin: (e: React.MouseEvent) => void, onAck: (site: Site, e: React.MouseEvent) => void }) {
   const isUp = type === 'up';
   const isDependent = type === 'dependent';
 
@@ -1251,19 +1322,29 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
 
             {(site.ticket_numero || site.responsavel) && !isUp && (
               <div className="mt-2 flex flex-wrap gap-2">
+                {site.responsavel && (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 border border-blue-100 rounded-md">
+                    <ShieldCheck className="w-2.5 h-2.5 text-blue-500" />
+                    <span className="text-[8px] font-black text-blue-600 uppercase tracking-tighter">Reconhecido por {site.responsavel}</span>
+                  </div>
+                )}
                 {site.ticket_numero && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 border border-rose-100 rounded-md">
                     <span className="text-[7px] font-black text-rose-400 uppercase tracking-tighter">Ticket</span>
                     <span className="text-[9px] font-bold text-rose-700">#{site.ticket_numero}</span>
                   </div>
                 )}
-                {site.responsavel && (
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md">
-                    <User className="w-2.5 h-2.5 text-slate-400" />
-                    <span className="text-[9px] font-bold text-slate-700">{site.responsavel}</span>
-                  </div>
-                )}
               </div>
+            )}
+            
+            {!isUp && !site.responsavel && (
+              <button 
+                onClick={(e) => onAck(site, e)}
+                className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-200"
+              >
+                <HandMetal className="w-3.5 h-3.5" />
+                Reconhecer Falha
+              </button>
             )}
             {!isUp && site.depende_de && (
               <p className="text-[9px] text-slate-400 mt-1 italic break-words leading-normal">

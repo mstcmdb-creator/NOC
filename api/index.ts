@@ -140,8 +140,8 @@ app.get("/api/update-status", async (req, res) => {
         total_incidentes_resolvidos: totalIncidentes,
         total_tempo_resolucao_segundos: totalTempoResolucao,
         tmro_segundos: tmroSegundos,
-        ticket_numero: oldSite?.ticket_numero || '',
-        responsavel: oldSite?.responsavel || '',
+        ticket_numero: (String(status).toLowerCase() === 'up') ? '' : (oldSite?.ticket_numero || ''),
+        responsavel: (String(status).toLowerCase() === 'up') ? '' : (oldSite?.responsavel || ''),
         status_desde: (status !== oldSite?.status) ? new Date().toISOString() : (oldSite?.status_desde || new Date().toISOString()),
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
