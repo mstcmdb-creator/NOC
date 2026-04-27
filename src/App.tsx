@@ -42,6 +42,7 @@ interface Site {
   depende_de?: string;
   causa_raiz?: string;
   descricao?: string;
+  fabricante?: string;
 }
 
 const formatTMRO = (seconds: number) => {
@@ -57,6 +58,21 @@ const formatTMRO = (seconds: number) => {
   return `${hrs}h ${mins}m`;
 };
 
+const getVendorLogo = (vendor: string | undefined, name: string) => {
+  const v = vendor?.toLowerCase() || name.toLowerCase();
+  
+  if (v.includes('mikrotik') || v.includes('rb') || v.includes('ccr')) return 'https://www.google.com/s2/favicons?sz=64&domain=mikrotik.com';
+  if (v.includes('zte')) return 'https://www.google.com/s2/favicons?sz=64&domain=zte.com.cn';
+  if (v.includes('radwin')) return 'https://www.google.com/s2/favicons?sz=64&domain=radwin.com';
+  if (v.includes('huawei')) return 'https://www.google.com/s2/favicons?sz=64&domain=huawei.com';
+  if (v.includes('ubiquiti') || v.includes('uiquiti') || v.includes('ubnt') || v.includes('airmax')) return 'https://www.google.com/s2/favicons?sz=64&domain=ui.com';
+  if (v.includes('cisco')) return 'https://www.google.com/s2/favicons?sz=64&domain=cisco.com';
+  if (v.includes('cambium')) return 'https://www.google.com/s2/favicons?sz=64&domain=cambiumnetworks.com';
+  if (v.includes('mimosa')) return 'https://www.google.com/s2/favicons?sz=64&domain=mimosa.co';
+  
+  return null;
+};
+
 export default function App() {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,13 +82,13 @@ export default function App() {
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [siteLogs, setSiteLogs] = useState<any[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '' });
+  const [newNode, setNewNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '', fabricante: '' });
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
-  const [editNode, setEditNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '' });
+  const [editNode, setEditNode] = useState({ nome_site: '', ip: '', categoria: 'Site', descricao: '', depende_de: '', fabricante: '' });
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(true);
   const [globalLogs, setGlobalLogs] = useState<any[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -177,7 +193,7 @@ export default function App() {
       });
       if (response.ok) {
         setIsAddModalOpen(false);
-        setNewNode({ nome_site: '', ip: '', categoria: availableCategories[0]?.nome || 'Site', descricao: '', depende_de: '' });
+        setNewNode({ nome_site: '', ip: '', categoria: availableCategories[0]?.nome || 'Site', descricao: '', depende_de: '', fabricante: '' });
         fetchData();
         alert('Dispositivo criado com sucesso! ✨');
       } else {
@@ -220,7 +236,8 @@ export default function App() {
       ip: site.ip,
       categoria: site.categoria,
       descricao: site.descricao || '',
-      depende_de: site.depende_de || ''
+      depende_de: site.depende_de || '',
+      fabricante: site.fabricante || ''
     });
     setIsEditModalOpen(true);
   };
@@ -464,6 +481,20 @@ export default function App() {
                   </select>
                 </div>
                 <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Fabricante</label>
+                  <select value={editNode.fabricante} onChange={e => setEditNode({...editNode, fabricante: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all appearance-none">
+                    <option value="">Detetar Automático</option>
+                    <option value="MikroTik">MikroTik</option>
+                    <option value="ZTE">ZTE</option>
+                    <option value="Radwin">Radwin</option>
+                    <option value="Huawei">Huawei</option>
+                    <option value="Ubiquiti">Ubiquiti</option>
+                    <option value="Cisco">Cisco</option>
+                    <option value="Cambium">Cambium</option>
+                    <option value="Mimosa">Mimosa</option>
+                  </select>
+                </div>
+                <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Depende de (Segure CTRL para vários)</label>
                   <select 
                     multiple 
@@ -519,6 +550,20 @@ export default function App() {
                     {availableCategories.map(cat => (
                       <option key={cat.id} value={cat.nome}>{cat.nome}</option>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Fabricante</label>
+                  <select value={newNode.fabricante} onChange={e => setNewNode({...newNode, fabricante: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all appearance-none">
+                    <option value="">Detetar Automático</option>
+                    <option value="MikroTik">MikroTik</option>
+                    <option value="ZTE">ZTE</option>
+                    <option value="Radwin">Radwin</option>
+                    <option value="Huawei">Huawei</option>
+                    <option value="Ubiquiti">Ubiquiti</option>
+                    <option value="Cisco">Cisco</option>
+                    <option value="Cambium">Cambium</option>
+                    <option value="Mimosa">Mimosa</option>
                   </select>
                 </div>
                 <div>
@@ -1007,8 +1052,17 @@ export default function App() {
                         {filteredSites.map(site => (
                           <tr key={site.id} className="hover:bg-slate-50/50 transition-colors group">
                             <td className="px-8 py-5 max-w-[300px]">
-                              <span className="font-bold text-slate-900 block break-words leading-tight mb-1">{site.nome_site}</span>
-                              <span className="text-[10px] text-slate-400 font-medium break-words block leading-normal">{site.descricao || 'Sem descrição'}</span>
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-bold text-slate-900 block break-words leading-tight mb-1">{site.nome_site}</span>
+                                  <span className="text-[10px] text-slate-400 font-medium break-words block leading-normal">{site.descricao || 'Sem descrição'}</span>
+                                </div>
+                                {getVendorLogo(site.fabricante, site.nome_site) && (
+                                  <div className="w-6 h-6 rounded-full border border-slate-100 flex items-center justify-center overflow-hidden p-0.5 shrink-0 bg-white">
+                                    <img src={getVendorLogo(site.fabricante, site.nome_site)!} alt="" className="w-full h-full object-contain" />
+                                  </div>
+                                )}
+                              </div>
                             </td>
                             <td className="px-8 py-5">
                               <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">{site.ip}</span>
@@ -1153,6 +1207,19 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
                   <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                   <span>Falha causada por dependência do {site.causa_raiz}</span>
                 </p>
+              </div>
+            )}
+            
+            {/* Vendor Badge */}
+            {getVendorLogo(site.fabricante, site.nome_site) && (
+              <div className="mt-4 flex justify-end">
+                <div className="w-6 h-6 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center overflow-hidden p-1">
+                  <img 
+                    src={getVendorLogo(site.fabricante, site.nome_site)!} 
+                    alt="Vendor" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               </div>
             )}
           </div>
