@@ -403,10 +403,24 @@ export default function App() {
   // Agrupar sites por categoria e ordenar categorias (pinadas primeiro)
   const categories = Array.from(new Set(filteredSites.map(s => s.categoria || 'Site')))
     .sort((a, b) => {
-      const pinA = pinnedCategories.includes(a);
-      const pinB = pinnedCategories.includes(b);
+      const pinA = pinnedCategories.includes(a as string);
+      const pinB = pinnedCategories.includes(b as string);
       if (pinA && !pinB) return -1;
       if (!pinA && pinB) return 1;
+
+      if (statusFilter !== 'all') {
+        const getLatest = (cat: string) => {
+          const sitesCat = filteredSites.filter(s => (s.categoria || 'Site') === cat && s.status === statusFilter);
+          if (sitesCat.length === 0) return 0;
+          return Math.max(...sitesCat.map(s => new Date(s.status_desde || s.ultima_verificacao).getTime()));
+        };
+        const latestA = getLatest(a as string);
+        const latestB = getLatest(b as string);
+        if (latestA !== latestB) {
+          return latestB - latestA; // Decrescente (mais recente primeiro)
+        }
+      }
+
       return (a as string).localeCompare(b as string);
     });
 
