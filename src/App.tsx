@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Bell,
   Menu,
+  PlusCircle,
   ChevronRight,
   Monitor,
   HelpCircle,
@@ -780,8 +781,21 @@ export default function App() {
               className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
               <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">{selectedSite.nome_site}</h3>
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">{selectedSite.nome_site}</h3>
+                    {selectedSite.status === 'down' && (
+                      <a 
+                        href="https://suporte.mstelcom.net/otrs/index.pl?Action=AgentTicketPhone"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-black tracking-widest uppercase transition-all shadow-sm shadow-rose-200"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        Abrir Ticket
+                      </a>
+                    )}
+                  </div>
                   <p className="text-sm font-mono text-slate-400 mt-1">{selectedSite.ip} • SLA {(selectedSite.uptime_sla || 100).toFixed(2)}%</p>
                 </div>
                 <button 
@@ -829,22 +843,26 @@ export default function App() {
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-1">O dispositivo alterou o estado para {(log.status || 'unknown').toUpperCase()}.</p>
-                          {(log.ticket_numero || log.responsavel) && (
-                            <div className="mt-2 flex gap-3">
-                              {log.ticket_numero && (
-                                <a 
-                                  href={getOTRSLink(log.ticket_numero) || '#'} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100 hover:bg-rose-100 transition-colors flex items-center gap-1"
-                                >
-                                  Ticket #{log.ticket_numero}
-                                  <ArrowRight className="w-2.5 h-2.5 opacity-50" />
-                                </a>
-                              )}
-                              {log.responsavel && <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-lg border border-slate-100 italic">Resp: {log.responsavel}</span>}
-                            </div>
-                          )}
+                          <div className="mt-2 flex gap-3 items-center">
+                            {log.ticket_numero ? (
+                              <a 
+                                href={getOTRSLink(log.ticket_numero) || '#'} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100 hover:bg-rose-100 transition-colors flex items-center gap-1"
+                              >
+                                Ticket #{log.ticket_numero}
+                                <ArrowRight className="w-2.5 h-2.5 opacity-50" />
+                              </a>
+                            ) : (
+                              log.status === 'down' && (
+                                <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                                  Sem ticket associado
+                                </span>
+                              )
+                            )}
+                            {log.responsavel && <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-lg border border-slate-100 italic">Resp: {log.responsavel}</span>}
+                          </div>
                         </div>
                       </div>
                     ))
