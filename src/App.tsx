@@ -1376,7 +1376,7 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
               </div>
             )}
             
-            {!isUp && site.depende_de && (
+            {isDependent && site.depende_de && (
               <p className="text-[9px] text-slate-400 mt-1 italic break-words leading-normal">
                 Depende de: {site.depende_de.split(',').map(ip => sites.find(s => s.ip === ip)?.nome_site || ip).join(', ')}
               </p>
