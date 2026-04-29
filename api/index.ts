@@ -158,6 +158,43 @@ app.get("/api/update-status", async (req, res) => {
   }
 });
 
+// NOVO ENDPOINT: Receber pings dos servidores MikroTik
+app.post("/api/monitor-ping", async (req, res) => {
+  const { name, status } = req.body || req.query; // Aceitar tanto no body como query para facilitar os testes via curl/browser
+  
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+
+  try {
+    const { error } = await supabase
+      .from('monitors')
+      .upsert({ 
+        name: String(name), 
+        status: status ? String(status).toLowerCase() : 'up', 
+        last_seen: new Date().toISOString() 
+      }, { onConflict: 'name' });
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// NOVO ENDPOINT: Listar servidores de monitorização
+app.get("/api/monitors", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('monitors')
+      .select('*')
+      .order('last_seen', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // NOVO ENDPOINT: Histórico de um site específico
 app.get("/api/site-logs", async (req, res) => {
   const { ip } = req.query;

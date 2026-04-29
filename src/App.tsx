@@ -113,6 +113,8 @@ export default function App() {
   const [ackNode, setAckNode] = useState<Site | null>(null);
   const [ackData, setAckData] = useState({ responsavel: '', ticket_numero: '' });
   const [statusFilter, setStatusFilter] = useState<'all' | 'up' | 'down' | 'dependente'>('all');
+  const [monitors, setMonitors] = useState<any[]>([]);
+  const [isMonitorsModalOpen, setIsMonitorsModalOpen] = useState(false);
 
   const STATIC_PASSWORD = "N0cNG2026#"; // Atualizado conforme solicitação
 
@@ -196,6 +198,18 @@ export default function App() {
       setGlobalLogs(data || []);
     } catch (error) {
       console.error("Erro ao buscar logs globais:", error);
+    }
+  };
+
+  const fetchMonitors = async () => {
+    try {
+      const response = await fetch('/api/monitors');
+      if (response.ok) {
+        const data = await response.json();
+        setMonitors(data || []);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar monitores:", error);
     }
   };
 
@@ -356,8 +370,11 @@ export default function App() {
     fetchData();
     fetchCategories();
     fetchGlobalLogs();
+    fetchMonitors();
+    
     const interval = setInterval(() => {
       fetchData();
+      fetchMonitors();
     }, 5000);
 
     const timer = setInterval(() => {
@@ -701,6 +718,50 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* MODAL: Servidores de Monitorização */}
+      <AnimatePresence>
+        {isMonitorsModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center z-[110] p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMonitorsModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden p-8 border border-white/20">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight mb-1">Servidores MNT Monitor</h3>
+                  <p className="text-xs text-slate-500 font-medium">Estado dos nós de monitorização do MikroTik.</p>
+                </div>
+                <button onClick={() => setIsMonitorsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors bg-slate-50 rounded-xl">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                {monitors.length === 0 ? (
+                  <p className="text-sm text-slate-500 text-center py-8">Nenhum servidor de monitorização registado.</p>
+                ) : (
+                  monitors.map(m => {
+                    const isUp = (new Date().getTime() - new Date(m.last_seen).getTime()) <= 20000;
+                    return (
+                      <div key={m.name} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                        <div className="flex items-center gap-3">
+                          <Server className={`w-5 h-5 ${isUp ? 'text-emerald-500' : 'text-rose-500'}`} />
+                          <div>
+                            <p className="font-bold text-slate-900 text-sm">{m.name}</p>
+                            <p className="text-[10px] text-slate-400">Visto pela última vez: {new Date(m.last_seen).toLocaleTimeString('pt-PT')}</p>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-[10px] font-black tracking-widest uppercase ${isUp ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                          {isUp ? 'ONLINE' : 'OFFLINE'}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* MODAL: Histórico */}
       <AnimatePresence>
         {selectedSite && (
@@ -1004,10 +1065,23 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hidden sm:flex items-center gap-3">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Tempo Real Ativo</span>
-              </div>
+              {(() => {
+                const isRealTimeActive = monitors.length > 0 && monitors.every(m => {
+                  const lastSeen = new Date(m.last_seen).getTime();
+                  const now = new Date().getTime();
+                  return (now - lastSeen) <= 20000;
+                });
+                
+                return (
+                  <div 
+                    onClick={() => setIsMonitorsModalOpen(true)}
+                    className="px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hidden sm:flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition-colors"
+                  >
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${isRealTimeActive ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`}></div>
+                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Tempo Real Ativo</span>
+                  </div>
+                );
+              })()}
               <button 
                 onClick={() => fetchData()}
                 className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm text-slate-600"
