@@ -1376,10 +1376,13 @@ function SiteCard({ site, type, sites, onSelect, onDelete, isPinned, onTogglePin
               </div>
             )}
             
-            {isDependent && site.depende_de && (
-              <p className="text-[9px] text-slate-400 mt-1 italic break-words leading-normal">
-                Depende de: {site.depende_de.split(',').map(ip => sites.find(s => s.ip === ip)?.nome_site || ip).join(', ')}
-              </p>
+            {isDependent && site.depende_de && !site.causa_raiz && (
+              <div className="mt-2 p-2 bg-amber-50/50 border border-amber-100/50 rounded-lg">
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-tight flex items-start gap-1.5">
+                  <Activity className="w-3 h-3 shrink-0" />
+                  <span className="leading-snug">Depende de: {site.depende_de.split(',').map(ip => sites.find(s => s.ip === ip)?.nome_site || ip).join(', ')}</span>
+                </p>
+              </div>
             )}
             {isDependent && site.causa_raiz && (
               <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-xl w-full">
