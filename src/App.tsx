@@ -52,9 +52,11 @@ interface Site {
 }
 
 const getOTRSLink = (ticketNum: string | undefined) => {
-  if (!ticketNum || !/^\d+$/.test(ticketNum)) return null;
+  if (!ticketNum) return null;
+  const num = ticketNum.replace(/\D/g, ''); // Extrai apenas os números, ignorando espaços ou prefixos
+  if (!num) return null;
   // Equivalência: 093812 -> 71640. Offset = -22172
-  const internalId = parseInt(ticketNum, 10) - 22172;
+  const internalId = parseInt(num, 10) - 22172;
   return `https://suporte.mstelcom.net/otrs/index.pl?Action=AgentTicketZoom;TicketID=${internalId}`;
 };
 
