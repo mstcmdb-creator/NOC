@@ -1084,7 +1084,7 @@ export default function App() {
 
             <div className="flex items-center gap-4 w-full md:w-auto">
               {(() => {
-                const isRealTimeActive = monitors.length > 0 && monitors.every(m => {
+                const isRealTimeActive = monitors.length > 0 && monitors.some(m => {
                   const lastSeen = new Date(m.last_seen).getTime();
                   const now = new Date().getTime();
                   return (now - lastSeen) <= 20000;
