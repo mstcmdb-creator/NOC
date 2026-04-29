@@ -161,7 +161,8 @@ app.get("/api/update-status", async (req, res) => {
 
 // NOVO ENDPOINT: Receber pings dos servidores MikroTik
 app.all("/api/monitor-ping", async (req, res) => {
-  const { name, status } = req.body || req.query; // Aceitar tanto no body como query para facilitar os testes via curl/browser
+  const name = req.body.name || req.query.name;
+  const status = req.body.status || req.query.status;
   
   if (!name) return res.status(400).json({ error: 'Name is required' });
 
