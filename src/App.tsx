@@ -1138,8 +1138,7 @@ export default function App() {
                   if (categorySites.length === 0) return null;
 
                   const sitesOnline = categorySites.filter(s => s.status === 'up');
-                  const sitesDependent = categorySites.filter(s => s.status === 'dependente');
-                  const sitesOffline = categorySites.filter(s => s.status === 'down');
+                  const sitesDownAndDep = categorySites.filter(s => s.status !== 'up');
                   
                   const realTimeAvailability = categorySites.length > 0 
                     ? (sitesOnline.length / categorySites.length * 100).toFixed(1) 
@@ -1206,10 +1205,10 @@ export default function App() {
                           </div>
                         )}
 
-                        {(sitesDependent.length > 0 || sitesOffline.length > 0) && (
+                        {sitesDownAndDep.length > 0 && (
                           <div className="space-y-4">
                             <AnimatePresence mode="popLayout">
-                              {[...sitesDependent, ...sitesOffline].map(site => (
+                              {sitesDownAndDep.map(site => (
                                 <SiteCard 
                                   key={site.id} 
                                   site={site} 
