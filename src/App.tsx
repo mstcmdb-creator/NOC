@@ -1094,41 +1094,45 @@ export default function App() {
                       </div>
 
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <AnimatePresence mode="popLayout">
-                            {sitesOnline.map(site => (
-                              <SiteCard 
-                                key={site.id} 
-                                site={site} 
-                                type="up" 
-                                sites={sites}
-                                onSelect={() => handleSiteClick(site)} 
-                                onDelete={() => {}} // Desativado no dashboard
-                                isPinned={pinnedSites.includes(site.ip)}
-                                onTogglePin={(e) => togglePinSite(site.ip, e)}
-                                onAck={openAckModal}
-                              />
-                            ))}
-                          </AnimatePresence>
-                        </div>
+                        {sitesOnline.length > 0 && (
+                          <div className="space-y-4">
+                            <AnimatePresence mode="popLayout">
+                              {sitesOnline.map(site => (
+                                <SiteCard 
+                                  key={site.id} 
+                                  site={site} 
+                                  type="up" 
+                                  sites={sites}
+                                  onSelect={() => handleSiteClick(site)} 
+                                  onDelete={() => {}} // Desativado no dashboard
+                                  isPinned={pinnedSites.includes(site.ip)}
+                                  onTogglePin={(e) => togglePinSite(site.ip, e)}
+                                  onAck={openAckModal}
+                                />
+                              ))}
+                            </AnimatePresence>
+                          </div>
+                        )}
 
-                        <div className="space-y-4">
-                          <AnimatePresence mode="popLayout">
-                            {[...sitesDependent, ...sitesOffline].map(site => (
-                              <SiteCard 
-                                key={site.id} 
-                                site={site} 
-                                type={site.status === 'dependente' ? 'dependent' : 'down'} 
-                                sites={sites}
-                                onSelect={() => handleSiteClick(site)} 
-                                onDelete={() => {}} // Desativado no dashboard
-                                isPinned={pinnedSites.includes(site.ip)}
-                                onTogglePin={(e) => togglePinSite(site.ip, e)}
-                                onAck={openAckModal}
-                              />
-                            ))}
-                          </AnimatePresence>
-                        </div>
+                        {(sitesDependent.length > 0 || sitesOffline.length > 0) && (
+                          <div className="space-y-4">
+                            <AnimatePresence mode="popLayout">
+                              {[...sitesDependent, ...sitesOffline].map(site => (
+                                <SiteCard 
+                                  key={site.id} 
+                                  site={site} 
+                                  type={site.status === 'dependente' ? 'dependent' : 'down'} 
+                                  sites={sites}
+                                  onSelect={() => handleSiteClick(site)} 
+                                  onDelete={() => {}} // Desativado no dashboard
+                                  isPinned={pinnedSites.includes(site.ip)}
+                                  onTogglePin={(e) => togglePinSite(site.ip, e)}
+                                  onAck={openAckModal}
+                                />
+                              ))}
+                            </AnimatePresence>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
