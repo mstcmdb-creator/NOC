@@ -112,6 +112,7 @@ export default function App() {
   const [isAckModalOpen, setIsAckModalOpen] = useState(false);
   const [ackNode, setAckNode] = useState<Site | null>(null);
   const [ackData, setAckData] = useState({ responsavel: '', ticket_numero: '' });
+  const [statusFilter, setStatusFilter] = useState<'all' | 'up' | 'down' | 'dependente'>('all');
 
   const STATIC_PASSWORD = "N0cNG2026#"; // Atualizado conforme solicitação
 
@@ -953,10 +954,10 @@ export default function App() {
             </button>
             
             <div className="flex gap-4 md:gap-6 items-center border-r border-slate-100 pr-4 md:pr-8 overflow-x-auto no-scrollbar">
-              <HeaderStat label="TOTAL" value={sites.length} />
-              <HeaderStat label="UP" value={sites.filter(s => s.status === 'up').length} color="emerald" />
-              <HeaderStat label="DOWN" value={sites.filter(s => s.status === 'down').length} color="rose" />
-              <HeaderStat className="hidden sm:flex" label="DEP" value={sites.filter(s => s.status === 'dependente').length} color="amber" />
+              <HeaderStat label="TOTAL" value={sites.length} onClick={() => setStatusFilter('all')} isActive={statusFilter === 'all'} />
+              <HeaderStat label="UP" value={sites.filter(s => s.status === 'up').length} color="emerald" onClick={() => setStatusFilter('up')} isActive={statusFilter === 'up'} />
+              <HeaderStat label="DOWN" value={sites.filter(s => s.status === 'down').length} color="rose" onClick={() => setStatusFilter('down')} isActive={statusFilter === 'down'} />
+              <HeaderStat className="hidden sm:flex" label="DEP" value={sites.filter(s => s.status === 'dependente').length} color="amber" onClick={() => setStatusFilter('dependente')} isActive={statusFilter === 'dependente'} />
             </div>
           </div>
 
@@ -1030,13 +1031,20 @@ export default function App() {
                 {categories.map(category => {
                   const categorySites = filteredSites
                     .filter(s => (s.categoria || 'Site') === category)
+                    .filter(s => statusFilter === 'all' || s.status === statusFilter)
                     .sort((a, b) => {
                       const pinA = pinnedSites.includes(a.ip);
                       const pinB = pinnedSites.includes(b.ip);
                       if (pinA && !pinB) return -1;
                       if (!pinA && pinB) return 1;
-                      return 0;
+                      
+                      const timeA = new Date(a.status_desde || a.ultima_verificacao).getTime();
+                      const timeB = new Date(b.status_desde || b.ultima_verificacao).getTime();
+                      return timeB - timeA;
                     });
+                  
+                  if (categorySites.length === 0) return null;
+
                   const sitesOnline = categorySites.filter(s => s.status === 'up');
                   const sitesDependent = categorySites.filter(s => s.status === 'dependente');
                   const sitesOffline = categorySites.filter(s => s.status === 'down');
@@ -1264,7 +1272,7 @@ function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNo
   );
 }
 
-function HeaderStat({ label, value, color = 'default', className = "" }: { label: string; value: number; color?: 'emerald' | 'rose' | 'amber' | 'default'; className?: string }) {
+function HeaderStat({ label, value, color = 'default', className = "", onClick, isActive = false }: { label: string; value: number; color?: 'emerald' | 'rose' | 'amber' | 'default'; className?: string; onClick?: () => void; isActive?: boolean }) {
   const colors = {
     emerald: 'text-emerald-500 bg-emerald-50',
     rose: 'text-rose-500 bg-rose-50',
@@ -1273,7 +1281,10 @@ function HeaderStat({ label, value, color = 'default', className = "" }: { label
   };
 
   return (
-    <div className={`flex flex-col gap-0 md:gap-1 ${className}`}>
+    <div 
+      onClick={onClick}
+      className={`flex flex-col gap-0 md:gap-1 p-2 rounded-xl transition-all ${onClick ? 'cursor-pointer hover:bg-slate-50' : ''} ${isActive ? 'bg-slate-100 ring-1 ring-slate-200' : ''} ${className}`}
+    >
       <span className="text-[8px] md:text-[10px] font-bold text-slate-400 tracking-widest">{label}</span>
       <span className={`text-base md:text-2xl font-black ${colors[color]}`}>{value.toLocaleString('pt-PT')}</span>
     </div>
