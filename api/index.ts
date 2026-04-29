@@ -305,24 +305,31 @@ app.post("/api/sites/update", async (req, res) => {
 
     if (error) throw error;
 
-    // Atualizar o histórico mais recente (down) para também ter o ticket/responsável
+    // Atualizar o histórico mais recente para também ter o ticket/responsável
     if (ticket_numero || responsavel) {
-      const { data: recentHistory } = await supabase
+      const { data: recentHistory, error: fetchErr } = await supabase
         .from('status_history')
         .select('id')
         .eq('site_ip', old_ip)
-        .eq('status', 'down')
         .order('changed_at', { ascending: false })
         .limit(1);
 
+      if (fetchErr) {
+        console.error("Erro ao procurar histórico recente:", fetchErr);
+      }
+
       if (recentHistory && recentHistory.length > 0) {
-        await supabase
+        const { error: updateErr } = await supabase
           .from('status_history')
           .update({
             ticket_numero: ticket_numero || '',
             responsavel: responsavel || ''
           })
           .eq('id', recentHistory[0].id);
+          
+        if (updateErr) {
+          console.error("Erro ao atualizar status_history com ticket:", updateErr);
+        }
       }
     }
 
