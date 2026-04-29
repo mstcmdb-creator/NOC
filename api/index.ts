@@ -304,6 +304,28 @@ app.post("/api/sites/update", async (req, res) => {
       .eq('ip', old_ip);
 
     if (error) throw error;
+
+    // Atualizar o histórico mais recente (down) para também ter o ticket/responsável
+    if (ticket_numero || responsavel) {
+      const { data: recentHistory } = await supabase
+        .from('status_history')
+        .select('id')
+        .eq('site_ip', old_ip)
+        .eq('status', 'down')
+        .order('changed_at', { ascending: false })
+        .limit(1);
+
+      if (recentHistory && recentHistory.length > 0) {
+        await supabase
+          .from('status_history')
+          .update({
+            ticket_numero: ticket_numero || '',
+            responsavel: responsavel || ''
+          })
+          .eq('id', recentHistory[0].id);
+      }
+    }
+
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).send(err.message);
