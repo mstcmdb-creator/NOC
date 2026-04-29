@@ -798,7 +798,7 @@ export default function App() {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-4">
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">{selectedSite.nome_site}</h3>
-                    {selectedSite.status === 'down' && (
+                    {selectedSite.status === 'down' && !selectedSite.ticket_numero && (
                       <a 
                         href="https://suporte.mstelcom.net/otrs/index.pl?Action=AgentTicketPhone"
                         target="_blank"
