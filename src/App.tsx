@@ -943,6 +943,15 @@ export default function App() {
         </div>
 
         <nav className="flex-1 px-4 py-8 space-y-1">
+          <NavItem 
+            icon={<Network className="w-5 h-5 text-blue-500" />} 
+            label="Mapas MPLS" 
+            active={activeTab === 'mapas'} 
+            onClick={() => {
+              setActiveTab('mapas');
+              setIsMobileMenuOpen(false);
+            }} 
+          />
           <button 
             onClick={() => setIsAddModalOpen(true)}
             className="w-full flex items-center gap-3 px-4 py-4 bg-black text-white rounded-2xl shadow-xl shadow-black/10 hover:opacity-90 transition-all font-bold text-sm"
@@ -960,16 +969,6 @@ export default function App() {
           </button>
 
           <div className="space-y-1">
-            <NavItem 
-              icon={<MapIcon className="w-5 h-5" />} 
-              label="Mapas" 
-              active={activeTab === 'mapas'} 
-              onClick={() => {
-                setActiveTab('mapas');
-                setIsMobileMenuOpen(false);
-              }} 
-            />
-
             <button 
               onClick={() => {
                 setActiveTab('dashboard');
