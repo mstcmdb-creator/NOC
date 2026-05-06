@@ -396,4 +396,42 @@ app.delete("/api/categories", async (req, res) => {
   }
 });
 
+// NOVO: Buscar esquema de diagnóstico por tecnologia
+app.get("/api/diagnostico/:tech", async (req, res) => {
+  const { tech } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from('diagnostico_schemas')
+      .select('*')
+      .eq('tech', tech)
+      .maybeSingle();
+
+    if (error) throw error;
+    res.json(data || { tech, nodes: [], edges: [] });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// NOVO: Salvar esquema de diagnóstico
+app.post("/api/diagnostico", async (req, res) => {
+  const { tech, nodes, edges } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('diagnostico_schemas')
+      .upsert({ 
+        tech, 
+        nodes: nodes || [], 
+        edges: edges || [], 
+        updated_at: new Date().toISOString() 
+      }, { onConflict: 'tech' })
+      .select();
+
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default app;

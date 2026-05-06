@@ -1657,32 +1657,61 @@ function DiagnosticoInicial() {
   const [isAddingConnection, setIsAddingConnection] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedNodes = localStorage.getItem(`diag_nodes_${activeTech}`);
-    const savedEdges = localStorage.getItem(`diag_edges_${activeTech}`);
-    setNodes(savedNodes ? JSON.parse(savedNodes) : []);
-    setEdges(savedEdges ? JSON.parse(savedEdges) : []);
+    const fetchSchema = async () => {
+      try {
+        // Tenta buscar no DB primeiro
+        const response = await fetch(`/api/diagnostico/${activeTech}`);
+        if (response.ok) {
+          const data = await response.json();
+          setNodes(data.nodes && data.nodes.length > 0 ? data.nodes : JSON.parse(localStorage.getItem(`diag_nodes_${activeTech}`) || '[]'));
+          setEdges(data.edges && data.edges.length > 0 ? data.edges : JSON.parse(localStorage.getItem(`diag_edges_${activeTech}`) || '[]'));
+        } else {
+          throw new Error("API Offline");
+        }
+      } catch (error) {
+        // Fallback total para LocalStorage em caso de erro
+        const savedNodes = localStorage.getItem(`diag_nodes_${activeTech}`);
+        const savedEdges = localStorage.getItem(`diag_edges_${activeTech}`);
+        setNodes(savedNodes ? JSON.parse(savedNodes) : []);
+        setEdges(savedEdges ? JSON.parse(savedEdges) : []);
+      }
+    };
+    fetchSchema();
   }, [activeTech]);
 
   useEffect(() => {
-    if (nodes.length > 0 || edges.length > 0) {
+    const saveSchema = async () => {
+      if (nodes.length === 0 && edges.length === 0) return;
+
+      // Persistência local imediata para "sentir" que funciona
       localStorage.setItem(`diag_nodes_${activeTech}`, JSON.stringify(nodes));
       localStorage.setItem(`diag_edges_${activeTech}`, JSON.stringify(edges));
-    } else {
-      localStorage.removeItem(`diag_nodes_${activeTech}`);
-      localStorage.removeItem(`diag_edges_${activeTech}`);
-    }
+
+      try {
+        await fetch('/api/diagnostico', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tech: activeTech, nodes, edges })
+        });
+      } catch (error) {
+        console.error("Erro ao sincronizar com DB:", error);
+      }
+    };
+    
+    const timeout = setTimeout(saveSchema, 500);
+    return () => clearTimeout(timeout);
   }, [nodes, edges, activeTech]);
 
   const addNode = (type: 'step' | 'image' | 'decision') => {
     const newNode = {
       id: Math.random().toString(36).substr(2, 9),
       type,
-      x: 100 + Math.random() * 100,
-      y: 100 + Math.random() * 100,
+      x: 150 + Math.random() * 50,
+      y: 150 + Math.random() * 50,
       text: type === 'decision' ? 'Pergunta de Decisão?' : type === 'image' ? 'Legenda da Imagem' : 'Descrição do passo de diagnóstico...',
       image: null
     };
-    setNodes([...nodes, newNode]);
+    setNodes(prev => [...prev, newNode]);
   };
 
   const deleteNode = (id: string, e: React.MouseEvent) => {
@@ -1715,7 +1744,7 @@ function DiagnosticoInicial() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
       {/* Top Bar */}
-      <div className="px-4 md:px-8 py-4 bg-white border-b border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between z-30 shadow-sm">
+      <div className="sticky top-0 z-40 px-4 md:px-8 py-4 bg-white/90 backdrop-blur-md border-b border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
         <div className="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-2 md:pb-0">
           {techs.map(t => (
             <button
