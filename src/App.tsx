@@ -946,7 +946,7 @@ export default function App() {
         <nav className="flex-1 px-4 py-8 space-y-1">
           <NavItem 
             icon={<Network className="w-5 h-5 text-blue-500" />} 
-            label="Mapas MPLS" 
+            label="Mapas" 
             active={activeTab === 'mapas'} 
             onClick={() => {
               setActiveTab('mapas');
@@ -2175,8 +2175,8 @@ function MapasMPLS({ sites }: { sites: any[] }) {
               <Network className="w-7 h-7 text-blue-500 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic">
-                MPLS <span className="text-blue-500">Topology</span> Matrix
+              <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">
+                MAPA
               </h2>
               <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">Mercury Sentinel NOC Active Vision</p>
             </div>
