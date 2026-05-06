@@ -130,14 +130,15 @@ app.get("/api/diagnostico", async (req, res) => {
 });
 
 app.post("/api/diagnostico", express.json(), async (req, res) => {
-  const { tech, nodes, edges } = req.body;
+  const { tech, nodes, edges, maps } = req.body;
   try {
     const { error } = await supabase
       .from('diagnostico_schemas')
       .upsert({ 
         tech_name: tech, 
-        nodes: nodes, 
-        edges: edges,
+        nodes: nodes || [], 
+        edges: edges || [],
+        maps: maps || [],
         updated_at: new Date().toISOString()
       }, { onConflict: 'tech_name' });
 
