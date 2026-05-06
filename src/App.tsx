@@ -960,6 +960,16 @@ export default function App() {
           </button>
 
           <div className="space-y-1">
+            <NavItem 
+              icon={<MapIcon className="w-5 h-5" />} 
+              label="Mapas" 
+              active={activeTab === 'mapas'} 
+              onClick={() => {
+                setActiveTab('mapas');
+                setIsMobileMenuOpen(false);
+              }} 
+            />
+
             <button 
               onClick={() => {
                 setActiveTab('dashboard');
@@ -1019,15 +1029,6 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <NavItem 
-            icon={<MapIcon className="w-5 h-5" />} 
-            label="Mapas" 
-            active={activeTab === 'mapas'} 
-            onClick={() => {
-              setActiveTab('mapas');
-              setIsMobileMenuOpen(false);
-            }} 
-          />
 
           <NavItem 
             icon={<Workflow className="w-5 h-5" />} 
