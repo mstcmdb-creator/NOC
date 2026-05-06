@@ -1020,6 +1020,16 @@ export default function App() {
           </div>
 
           <NavItem 
+            icon={<MapIcon className="w-5 h-5" />} 
+            label="Mapas" 
+            active={activeTab === 'mapas'} 
+            onClick={() => {
+              setActiveTab('mapas');
+              setIsMobileMenuOpen(false);
+            }} 
+          />
+
+          <NavItem 
             icon={<Workflow className="w-5 h-5" />} 
             label="Diagnóstico Inicial" 
             active={activeTab === 'diagnostico'} 
@@ -1098,8 +1108,8 @@ export default function App() {
         </header>
 
         {/* Main View Area */}
-        <main className={`flex-1 ${activeTab === 'diagnostico' ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-50/50 ${activeTab === 'diagnostico' ? 'p-0' : 'p-4 md:p-8'}`}>
-          {activeTab !== 'diagnostico' && (
+        <main className={`flex-1 ${(activeTab === 'diagnostico' || activeTab === 'mapas') ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-50/50 ${(activeTab === 'diagnostico' || activeTab === 'mapas') ? 'p-0' : 'p-4 md:p-8'}`}>
+          {(activeTab !== 'diagnostico' && activeTab !== 'mapas') && (
           <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3 md:py-4 flex flex-col md:flex-row gap-3 md:gap-4 items-center justify-between">
             <div className="w-full max-w-2xl relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-black transition-colors">
@@ -1151,7 +1161,7 @@ export default function App() {
           </div>
           )}
 
-          <div className={activeTab === 'diagnostico' ? 'h-full' : 'p-4 md:p-8'}>
+          <div className={(activeTab === 'diagnostico' || activeTab === 'mapas') ? 'h-full' : 'p-4 md:p-8'}>
             <AnimatePresence mode="wait">
             {activeTab === 'dashboard' ? (
               <motion.div 
@@ -1296,6 +1306,16 @@ export default function App() {
                     </table>
                   </div>
                 </section>
+              </motion.div>
+            ) : activeTab === 'mapas' ? (
+              <motion.div 
+                key="mapas"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full flex flex-col"
+              >
+                <MapasMPLS />
               </motion.div>
             ) : activeTab === 'diagnostico' ? (
               <motion.div 
@@ -1957,6 +1977,227 @@ function LogRow({ time, device, event, status, color, user, ticket, responsavel 
           <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white">Guia de Edição</span>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Clique nos textos para editar. Arraste para mover. Use os botões no canto do bloco para conectar ou apagar.</span>
         </div>
+      </div>
+    </div>
+  );
+}
+function MapasMPLS() {
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [edges, setEdges] = useState<any[]>([]);
+  const [activeRegion, setActiveRegion] = useState('Rede Core');
+  const [isAddingConnection, setIsAddingConnection] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+
+  const regions = ['Rede Core', 'Região Norte', 'Região Sul', 'Internacional'];
+
+  useEffect(() => {
+    const fetchSchema = async () => {
+      try {
+        const response = await fetch(`/api/diagnostico/mpls_${activeRegion.replace(' ', '_')}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.nodes && data.nodes.length > 0) {
+            setNodes(data.nodes);
+            setEdges(data.edges || []);
+          } else {
+            const localNodes = localStorage.getItem(`mpls_nodes_${activeRegion}`);
+            const localEdges = localStorage.getItem(`mpls_edges_${activeRegion}`);
+            setNodes(localNodes ? JSON.parse(localNodes) : []);
+            setEdges(localEdges ? JSON.parse(localEdges) : []);
+          }
+        }
+      } catch (error) {
+        const localNodes = localStorage.getItem(`mpls_nodes_${activeRegion}`);
+        const localEdges = localStorage.getItem(`mpls_edges_${activeRegion}`);
+        setNodes(localNodes ? JSON.parse(localNodes) : []);
+        setEdges(localEdges ? JSON.parse(localEdges) : []);
+      }
+    };
+    fetchSchema();
+  }, [activeRegion]);
+
+  useEffect(() => {
+    if (nodes.length === 0 && edges.length === 0) return;
+    localStorage.setItem(`mpls_nodes_${activeRegion}`, JSON.stringify(nodes));
+    localStorage.setItem(`mpls_edges_${activeRegion}`, JSON.stringify(edges));
+
+    const saveToDB = async () => {
+      try {
+        await fetch('/api/diagnostico', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tech: `mpls_${activeRegion.replace(' ', '_')}`, nodes, edges })
+        });
+      } catch (err) {}
+    };
+    const timer = setTimeout(saveToDB, 1000);
+    return () => clearTimeout(timer);
+  }, [nodes, edges, activeRegion]);
+
+  const addNode = (type: 'router' | 'pe' | 'cloud' | 'link') => {
+    const newNode = {
+      id: Math.random().toString(36).substr(2, 9),
+      type,
+      x: 400 / zoom,
+      y: 300 / zoom,
+      name: type === 'router' ? 'P-ROUTER' : type === 'pe' ? 'PE-AGG' : type === 'cloud' ? 'INTERNET-UP' : 'LINK-SLA',
+      ip: '10.255.0.' + Math.floor(Math.random() * 254),
+      status: 'Ativo',
+      latency: Math.floor(Math.random() * 50) + 'ms',
+      loss: '0%'
+    };
+    setNodes(prev => [...prev, newNode]);
+  };
+
+  const deleteNode = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNodes(prev => prev.filter(n => n.id !== id));
+    setEdges(prev => prev.filter(edge => edge.from !== id && edge.to !== id));
+  };
+
+  const updateNode = (id: string, field: string, value: any) => {
+    setNodes(prev => prev.map(n => n.id === id ? { ...n, [field]: value } : n));
+  };
+
+  return (
+    <div className="flex-1 flex flex-col h-full bg-slate-900 relative overflow-hidden">
+      <div className="px-8 py-8 z-30 bg-slate-900/80 backdrop-blur-md border-b border-white/5">
+        <h2 className="text-3xl font-black text-white mb-8 tracking-tight">Mapas de Rede MPLS</h2>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex gap-4">
+            {regions.map(r => (
+              <button
+                key={r}
+                onClick={() => setActiveRegion(r)}
+                className={`px-8 py-4 rounded-lg text-sm font-black transition-all ${
+                  activeRegion === r 
+                    ? 'bg-blue-600 text-white shadow-2xl shadow-blue-500/20 scale-105' 
+                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-4">
+             <button onClick={() => addNode('router')} className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:brightness-110 transition-all">
+               <Cpu className="w-5 h-5" /> CORE P
+             </button>
+             <button onClick={() => addNode('pe')} className="flex items-center gap-3 px-6 py-4 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:brightness-110 transition-all">
+               <Share2 className="w-5 h-5" /> PE-EDGE
+             </button>
+             <button onClick={() => addNode('cloud')} className="flex items-center gap-3 px-6 py-4 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:brightness-110 transition-all">
+               <Globe className="w-5 h-5" /> NUVEM
+             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Workspace */}
+      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px]">
+        <div 
+          className="w-full h-full transition-transform duration-200"
+          style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+        >
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+            <defs>
+              <marker id="arrow-mpls" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" />
+              </marker>
+            </defs>
+            {edges.map(edge => {
+              const from = nodes.find(n => n.id === edge.from);
+              const to = nodes.find(n => n.id === edge.to);
+              if (!from || !to) return null;
+              return (
+                <g key={edge.id} className="pointer-events-auto cursor-pointer" onClick={() => setEdges(edges.filter(e => e.id !== edge.id))}>
+                  <line 
+                    x1={from.x + 120} y1={from.y + 40} 
+                    x2={to.x + 120} y2={to.y + 40} 
+                    stroke="#3b82f6" strokeWidth="2"
+                    markerEnd="url(#arrow-mpls)"
+                    className="opacity-40 hover:opacity-100 transition-all"
+                  />
+                  <text 
+                    x={(from.x + to.x) / 2 + 120} y={(from.y + to.y) / 2 + 35} 
+                    fill="#3b82f6" fontSize="8" fontWeight="bold" 
+                    className="select-none pointer-events-none"
+                  >
+                    TÚNEL MPLS
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+
+          <div className="absolute inset-0 z-10">
+            <AnimatePresence>
+              {nodes.map(node => (
+                <motion.div
+                  key={node.id}
+                  drag
+                  dragMomentum={false}
+                  onDragEnd={(e, info) => {
+                    setNodes(prev => prev.map(n => n.id === node.id ? { ...n, x: n.x + info.offset.x / zoom, y: n.y + info.offset.y / zoom } : n));
+                  }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ x: node.x, y: node.y, opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className={`absolute group w-60 bg-slate-800/80 backdrop-blur-xl border-2 transition-all p-4 rounded-2xl ${
+                    isAddingConnection === node.id ? 'border-blue-500 ring-4 ring-blue-500/20' : 'border-white/5 hover:border-white/20'
+                  }`}
+                  style={{ position: 'absolute' }}
+                  onClick={() => isAddingConnection && (() => {
+                    if (isAddingConnection !== node.id) {
+                      setEdges(prev => [...prev, { id: `${isAddingConnection}-${node.id}`, from: isAddingConnection, to: node.id }]);
+                    }
+                    setIsAddingConnection(null);
+                  })()}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`p-2 rounded-xl ${node.type === 'router' ? 'bg-blue-500/20 text-blue-400' : node.type === 'pe' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                      {node.type === 'router' ? <Cpu className="w-5 h-5" /> : node.type === 'pe' ? <Share2 className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={(e) => { e.stopPropagation(); setIsAddingConnection(node.id); }} className="p-1 hover:bg-white/5 rounded text-slate-500" title="Conectar"><Share2 className="w-3 h-3" /></button>
+                      <button onClick={(e) => deleteNode(node.id, e)} className="p-1 hover:bg-rose-500/20 rounded text-slate-500 hover:text-rose-500" title="Apagar"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  </div>
+
+                  <input 
+                    value={node.name}
+                    onChange={e => updateNode(node.id, 'name', e.target.value)}
+                    className="bg-transparent text-sm font-black text-white outline-none w-full mb-1"
+                  />
+                  <input 
+                    value={node.ip}
+                    onChange={e => updateNode(node.id, 'ip', e.target.value)}
+                    className="bg-transparent text-[10px] font-bold text-slate-500 outline-none w-full"
+                  />
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="bg-white/5 p-2 rounded-lg">
+                      <span className="text-[7px] font-black text-slate-500 uppercase block">Latência</span>
+                      <span className="text-[10px] font-black text-emerald-400">{node.latency}</span>
+                    </div>
+                    <div className="bg-white/5 p-2 rounded-lg">
+                      <span className="text-[7px] font-black text-slate-500 uppercase block">Perda</span>
+                      <span className="text-[10px] font-black text-blue-400">{node.loss}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-2 bg-slate-800 p-2 rounded-2xl shadow-2xl border border-white/5 z-50">
+        <button onClick={() => setZoom(prev => Math.min(prev + 0.1, 2))} className="p-4 hover:bg-white/5 rounded-2xl transition-all text-slate-400 hover:text-white" title="Aumentar Zoom"><ZoomIn className="w-6 h-6" /></button>
+        <button onClick={() => setZoom(prev => Math.max(prev - 0.1, 0.5))} className="p-4 hover:bg-white/5 rounded-2xl transition-all text-slate-400 hover:text-white" title="Diminuir Zoom"><ZoomOut className="w-6 h-6" /></button>
+        <button onClick={() => setZoom(1)} className="p-4 hover:bg-white/5 rounded-2xl transition-all text-slate-400 hover:text-white" title="Resetar Zoom"><Navigation className="w-6 h-6" /></button>
       </div>
     </div>
   );
