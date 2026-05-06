@@ -1640,12 +1640,7 @@ function LogRow({ time, device, event, status, color, user, ticket, responsavel 
           {status}
         </span>
       </td>
-      <td className="px-6 py-4 text-xs text-slate-400 font-medium">{user}</td>
-    </tr>
-  );
-}
-
-function DiagnosticoInicial() {
+      <td className="function DiagnosticoInicial() {
   const techs = [
     { name: 'FWA' },
     { name: 'Radwin' },
@@ -1658,6 +1653,7 @@ function DiagnosticoInicial() {
   const [nodes, setNodes] = useState<any[]>([]);
   const [edges, setEdges] = useState<any[]>([]);
   const [isAddingConnection, setIsAddingConnection] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     const fetchSchema = async () => {
@@ -1707,12 +1703,13 @@ function DiagnosticoInicial() {
     const newNode = {
       id: Math.random().toString(36).substr(2, 9),
       type,
-      x: 400,
-      y: 300,
-      text: type === 'decision' ? 'Latency Threshold Exceeded' : type === 'image' ? 'Main Distribution' : 'CTRL-001',
-      subtitle: type === 'decision' ? 'Last check: 2 min ago' : type === 'image' ? 'Physical connectivity verified via onsite visual inspection log.' : 'Status Active',
+      x: 400 / zoom,
+      y: 300 / zoom,
+      text: type === 'decision' ? 'Latência acima do limite' : type === 'image' ? 'Distribuição Principal' : 'CTRL-001',
+      subtitle: type === 'decision' ? 'Última verificação: 2 min atrás' : type === 'image' ? 'Conectividade física verificada via log de inspeção visual no local.' : 'Status Ativo',
       image: type === 'image' ? 'https://images.unsplash.com/photo-1558494949-ef010cbdcc51?w=400&q=80' : null,
-      tags: type === 'image' ? ['FTTX-HUB', 'VLAN 204'] : []
+      tags: type === 'image' ? ['FTTX-HUB', 'VLAN 204'] : [],
+      status: 'Ativo'
     };
     setNodes(prev => [...prev, newNode]);
   };
@@ -1721,6 +1718,10 @@ function DiagnosticoInicial() {
     e.stopPropagation();
     setNodes(prev => prev.filter(n => n.id !== id));
     setEdges(prev => prev.filter(edge => edge.from !== id && edge.to !== id));
+  };
+
+  const updateNode = (id: string, field: string, value: any) => {
+    setNodes(prev => prev.map(n => n.id === id ? { ...n, [field]: value } : n));
   };
 
   const startConnection = (id: string, e: React.MouseEvent) => {
@@ -1742,8 +1743,7 @@ function DiagnosticoInicial() {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
-      {/* Header com Branding e Título */}
-      <div className="px-8 py-8 z-30">
+      <div className="px-8 py-8 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100">
         <h2 className="text-3xl font-black text-slate-900 mb-8 tracking-tight">Diagnóstico Inicial</h2>
         
         <div className="flex items-center justify-between">
@@ -1779,113 +1779,172 @@ function DiagnosticoInicial() {
 
       {/* Toolbar Flutuante */}
       <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-2 bg-white p-2 rounded-2xl shadow-2xl border border-slate-100 z-50">
-        <button className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black"><Navigation className="w-6 h-6" /></button>
-        <button className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black"><ZoomIn className="w-6 h-6" /></button>
-        <button className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black"><ZoomOut className="w-6 h-6" /></button>
-        <button className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black"><HandMetal className="w-6 h-6" /></button>
+        <button onClick={() => setZoom(prev => Math.min(prev + 0.1, 2))} className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black" title="Aumentar Zoom"><ZoomIn className="w-6 h-6" /></button>
+        <button onClick={() => setZoom(prev => Math.max(prev - 0.1, 0.5))} className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black" title="Diminuir Zoom"><ZoomOut className="w-6 h-6" /></button>
+        <button onClick={() => setZoom(1)} className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black" title="Resetar Zoom"><Navigation className="w-6 h-6" /></button>
+        <button className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black cursor-grab"><HandMetal className="w-6 h-6" /></button>
       </div>
 
       {/* Espaço de Trabalho */}
       <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px]">
-        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-          <defs>
-            <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-              <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
-            </marker>
-          </defs>
-          {edges.map(edge => {
-            const from = nodes.find(n => n.id === edge.from);
-            const to = nodes.find(n => n.id === edge.to);
-            if (!from || !to) return null;
-            return (
-              <line 
-                key={edge.id}
-                x1={from.x + 150} y1={from.y + 60} 
-                x2={to.x + 150} y2={to.y + 60} 
-                stroke="#94a3b8" strokeWidth="2" strokeDasharray="8,8"
-                markerEnd="url(#arrow)"
-                className="opacity-40"
-              />
-            );
-          })}
-        </svg>
+        <div 
+          className="w-full h-full transition-transform duration-200"
+          style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+        >
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+            <defs>
+              <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+              </marker>
+            </defs>
+            {edges.map(edge => {
+              const from = nodes.find(n => n.id === edge.from);
+              const to = nodes.find(n => n.id === edge.to);
+              if (!from || !to) return null;
+              const fromOffset = from.type === 'image' ? { x: 225, y: 80 } : { x: 160, y: 60 };
+              const toOffset = to.type === 'image' ? { x: 225, y: 80 } : { x: 160, y: 60 };
+              return (
+                <g key={edge.id} className="pointer-events-auto cursor-pointer" onClick={() => setEdges(edges.filter(e => e.id !== edge.id))}>
+                  <line 
+                    x1={from.x + fromOffset.x} y1={from.y + fromOffset.y} 
+                    x2={to.x + toOffset.x} y2={to.y + toOffset.y} 
+                    stroke="#94a3b8" strokeWidth="2" strokeDasharray="8,8"
+                    markerEnd="url(#arrow)"
+                    className="opacity-40 hover:opacity-100 hover:stroke-rose-400 transition-all"
+                  />
+                </g>
+              );
+            })}
+          </svg>
 
-        <div className="absolute inset-0 z-10">
-          <AnimatePresence>
-            {nodes.map(node => (
-              <motion.div
-                key={node.id}
-                drag
-                dragMomentum={false}
-                onDragEnd={(e, info) => {
-                  setNodes(prev => prev.map(n => n.id === node.id ? { ...n, x: n.x + info.offset.x, y: n.y + info.offset.y } : n));
-                }}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ x: node.x, y: node.y, opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className={`absolute group ${node.type === 'image' ? 'w-[450px]' : 'w-[320px]'} bg-white rounded-2xl shadow-2xl border-2 transition-all ${
-                  isAddingConnection === node.id ? 'border-blue-500 ring-4 ring-blue-500/10 scale-105' : 'border-slate-100 hover:border-slate-300'
-                }`}
-                style={{ position: 'absolute' }}
-                onClick={(e) => isAddingConnection && endConnection(node.id, e)}
-              >
-                {node.type === 'step' && (
-                  <div className="flex flex-col">
-                    <div className="bg-black p-4 rounded-t-[14px] flex items-center justify-between">
-                      <span className="text-[11px] font-black text-white uppercase tracking-[0.2em]">{node.text}</span>
-                      <Settings className="w-4 h-4 text-white/30" />
-                    </div>
-                    <div className="p-6 flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-400">Status</span>
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className="text-sm font-black text-emerald-500 uppercase tracking-widest">Active</span>
-                        <div className="w-32 h-1.5 bg-emerald-500 rounded-full" />
+          <div className="absolute inset-0 z-10">
+            <AnimatePresence>
+              {nodes.map(node => (
+                <motion.div
+                  key={node.id}
+                  drag
+                  dragMomentum={false}
+                  onDragEnd={(e, info) => {
+                    setNodes(prev => prev.map(n => n.id === node.id ? { ...n, x: n.x + info.offset.x / zoom, y: n.y + info.offset.y / zoom } : n));
+                  }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ x: node.x, y: node.y, opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className={`absolute group ${node.type === 'image' ? 'w-[450px]' : 'w-[320px]'} bg-white rounded-2xl shadow-2xl border-2 transition-all ${
+                    isAddingConnection === node.id ? 'border-blue-500 ring-4 ring-blue-500/10 scale-105' : 'border-slate-100 hover:border-slate-300'
+                  }`}
+                  style={{ position: 'absolute' }}
+                  onClick={(e) => isAddingConnection && endConnection(node.id, e)}
+                >
+                  {node.type === 'step' && (
+                    <div className="flex flex-col">
+                      <div className="bg-black p-4 rounded-t-[14px] flex items-center justify-between">
+                        <input 
+                          value={node.text}
+                          onChange={e => updateNode(node.id, 'text', e.target.value)}
+                          className="bg-transparent text-[11px] font-black text-white uppercase tracking-[0.2em] outline-none w-full"
+                        />
+                        <Settings className="w-4 h-4 text-white/30" />
+                      </div>
+                      <div className="p-6 flex items-center justify-between">
+                        <input 
+                          value="Status"
+                          readOnly
+                          className="text-sm font-bold text-slate-400 bg-transparent outline-none w-20"
+                        />
+                        <div className="flex flex-col items-end gap-1.5">
+                          <input 
+                            value={node.status || 'Ativo'}
+                            onChange={e => updateNode(node.id, 'status', e.target.value)}
+                            className="text-sm font-black text-emerald-500 uppercase tracking-widest bg-transparent outline-none text-right"
+                          />
+                          <div className="w-32 h-1.5 bg-emerald-500 rounded-full" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {node.type === 'decision' && (
-                  <div className="p-8 border-2 border-rose-500 rounded-2xl relative bg-white">
-                    <div className="absolute top-6 left-6 w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center">
-                      <AlertCircle className="w-8 h-8 text-rose-500" />
-                    </div>
-                    <div className="ml-20">
-                      <h4 className="text-base font-black text-slate-800 leading-tight mb-1">{node.text}</h4>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{node.subtitle}</p>
-                    </div>
-                  </div>
-                )}
-
-                {node.type === 'image' && (
-                  <div className="p-6 flex gap-6">
-                    <div className="w-40 h-40 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100 shadow-inner">
-                      <img src={node.image!} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1 flex flex-col pt-1">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Server className="w-4 h-4 text-slate-400" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">RACK UNIT 04</span>
+                  {node.type === 'decision' && (
+                    <div className="p-8 border-2 border-[#f97316] rounded-2xl relative bg-white">
+                      <div className="absolute top-6 left-6 w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center">
+                        <AlertCircle className="w-8 h-8 text-[#f97316]" />
                       </div>
-                      <h4 className="text-xl font-black text-slate-800 leading-none mb-3">{node.text}</h4>
-                      <p className="text-xs font-bold text-slate-500 leading-relaxed mb-6">{node.subtitle}</p>
-                      <div className="mt-auto flex gap-2">
-                        {node.tags?.map(tag => (
-                          <span key={tag} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[9px] font-black rounded-lg uppercase tracking-widest border border-emerald-100">{tag}</span>
-                        ))}
+                      <div className="ml-20">
+                        <textarea 
+                          value={node.text}
+                          onChange={e => updateNode(node.id, 'text', e.target.value)}
+                          className="text-base font-black text-slate-800 leading-tight mb-1 bg-transparent w-full outline-none resize-none"
+                          rows={2}
+                        />
+                        <input 
+                          value={node.subtitle}
+                          onChange={e => updateNode(node.id, 'subtitle', e.target.value)}
+                          className="text-[11px] font-bold text-slate-400 uppercase tracking-widest bg-transparent w-full outline-none"
+                        />
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Controles do Bloco */}
-                <div className="absolute -top-4 -right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
-                  <button onClick={(e) => startConnection(node.id, e)} className="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-2xl flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-all"><Share2 className="w-5 h-5" /></button>
-                  <button onClick={(e) => deleteNode(node.id, e)} className="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-2xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all"><Trash2 className="w-5 h-5" /></button>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+                  {node.type === 'image' && (
+                    <div className="p-6 border-2 border-[#3b82f6] rounded-2xl flex gap-6 bg-white">
+                      <div className="w-40 h-40 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100 shadow-inner group-relative">
+                        <img src={node.image!} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/50 transition-opacity flex items-center justify-center p-4">
+                           <input 
+                             placeholder="URL da Imagem"
+                             value={node.image || ''}
+                             onChange={e => updateNode(node.id, 'image', e.target.value)}
+                             className="text-[8px] bg-white rounded p-1 w-full outline-none"
+                           />
+                        </div>
+                      </div>
+                      <div className="flex-1 flex flex-col pt-1">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Server className="w-4 h-4 text-slate-400" />
+                          <input 
+                            value="UNIDADE DE RACK 04"
+                            readOnly
+                            className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] bg-transparent outline-none"
+                          />
+                        </div>
+                        <input 
+                          value={node.text}
+                          onChange={e => updateNode(node.id, 'text', e.target.value)}
+                          className="text-xl font-black text-slate-800 leading-none mb-3 bg-transparent outline-none"
+                        />
+                        <textarea 
+                          value={node.subtitle}
+                          onChange={e => updateNode(node.id, 'subtitle', e.target.value)}
+                          className="text-xs font-bold text-slate-500 leading-relaxed mb-6 bg-transparent outline-none resize-none"
+                          rows={3}
+                        />
+                        <div className="mt-auto flex gap-2">
+                          {node.tags?.map((tag: string, idx: number) => (
+                            <input 
+                              key={idx}
+                              value={tag}
+                              onChange={e => {
+                                const newTags = [...node.tags];
+                                newTags[idx] = e.target.value;
+                                updateNode(node.id, 'tags', newTags);
+                              }}
+                              className="px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[9px] font-black rounded-lg uppercase tracking-widest border border-emerald-100 outline-none w-20"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Controles de Bloco (Sempre visíveis no hover) */}
+                  <div className="absolute -top-4 -right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 z-20">
+                    <button onClick={(e) => startConnection(node.id, e)} className="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-2xl flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-all" title="Conectar"><Share2 className="w-5 h-5" /></button>
+                    <button onClick={(e) => deleteNode(node.id, e)} className="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-2xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all" title="Apagar"><Trash2 className="w-5 h-5" /></button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
@@ -1895,8 +1954,8 @@ function DiagnosticoInicial() {
           <MousePointer2 className="w-5 h-5 text-emerald-400" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white">Guia Rápido</span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Botão direito nos blocos para menu. Use scroll para zoom.</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white">Guia de Edição</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Clique nos textos para editar. Arraste para mover. Use os botões no canto do bloco para conectar ou apagar.</span>
         </div>
       </div>
     </div>
