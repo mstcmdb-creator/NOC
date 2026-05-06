@@ -1987,59 +1987,124 @@ function DiagnosticoInicial() {
   );
 }
 function MapasMPLS({ sites }: { sites: any[] }) {
+  const [maps, setMaps] = useState<any[]>([]);
+  const [currentMapId, setCurrentMapId] = useState<string>('');
   const [nodes, setNodes] = useState<any[]>([]);
   const [edges, setEdges] = useState<any[]>([]);
-  const [activeRegion, setActiveRegion] = useState('Rede Core');
   const [isAddingConnection, setIsAddingConnection] = useState<string | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [isLocked, setIsLocked] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
 
-  const regions = ['Rede Core', 'Região Norte', 'Região Sul', 'Internacional'];
-
+  // Carregar lista de mapas
   useEffect(() => {
-    const fetchSchema = async () => {
+    const fetchMaps = async () => {
       try {
-        const response = await fetch(`/api/diagnostico/mpls_${activeRegion.replace(' ', '_')}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.nodes && data.nodes.length > 0) {
-            setNodes(data.nodes);
-            setEdges(data.edges || []);
-          } else {
-            const localNodes = localStorage.getItem(`mpls_nodes_${activeRegion}`);
-            const localEdges = localStorage.getItem(`mpls_edges_${activeRegion}`);
-            setNodes(localNodes ? JSON.parse(localNodes) : []);
-            setEdges(localEdges ? JSON.parse(localEdges) : []);
-          }
-        }
-      } catch (error) {
-        const localNodes = localStorage.getItem(`mpls_nodes_${activeRegion}`);
-        const localEdges = localStorage.getItem(`mpls_edges_${activeRegion}`);
+        const response = await fetch('/api/diagnostico?tech=mpls_map_list');
+        const data = await response.json();
+        const mapList = data.maps || [{ id: 'default', name: 'Mapa Principal' }];
+        setMaps(mapList);
+        if (!currentMapId) setCurrentMapId(mapList[0].id);
+      } catch (err) {
+        setMaps([{ id: 'default', name: 'Mapa Principal' }]);
+        setCurrentMapId('default');
+      }
+    };
+    fetchMaps();
+  }, []);
+
+  // Carregar dados do mapa atual
+  useEffect(() => {
+    if (!currentMapId) return;
+    const fetchMapData = async () => {
+      try {
+        const response = await fetch(`/api/diagnostico?tech=mpls_data_${currentMapId}`);
+        const data = await response.json();
+        setNodes(data.nodes || []);
+        setEdges(data.edges || []);
+      } catch (err) {
+        const localNodes = localStorage.getItem(`mpls_nodes_${currentMapId}`);
+        const localEdges = localStorage.getItem(`mpls_edges_${currentMapId}`);
         setNodes(localNodes ? JSON.parse(localNodes) : []);
         setEdges(localEdges ? JSON.parse(localEdges) : []);
       }
     };
-    fetchSchema();
-  }, [activeRegion]);
+    fetchMapData();
+  }, [currentMapId]);
 
+  // Salvar dados do mapa atual
   useEffect(() => {
-    if (nodes.length === 0 && edges.length === 0) return;
-    localStorage.setItem(`mpls_nodes_${activeRegion}`, JSON.stringify(nodes));
-    localStorage.setItem(`mpls_edges_${activeRegion}`, JSON.stringify(edges));
+    if (!currentMapId || (nodes.length === 0 && edges.length === 0)) return;
+    localStorage.setItem(`mpls_nodes_${currentMapId}`, JSON.stringify(nodes));
+    localStorage.setItem(`mpls_edges_${currentMapId}`, JSON.stringify(edges));
 
     const saveToDB = async () => {
       try {
         await fetch('/api/diagnostico', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tech: `mpls_${activeRegion.replace(' ', '_')}`, nodes, edges })
+          body: JSON.stringify({ tech: `mpls_data_${currentMapId}`, nodes, edges })
         });
       } catch (err) {}
     };
     const timer = setTimeout(saveToDB, 1000);
     return () => clearTimeout(timer);
-  }, [nodes, edges, activeRegion]);
+  }, [nodes, edges, currentMapId]);
+
+  const createNewMap = async () => {
+    const name = prompt('Nome do novo mapa:');
+    if (!name) return;
+    const newId = Math.random().toString(36).substr(2, 9);
+    const newMaps = [...maps, { id: newId, name }];
+    setMaps(newMaps);
+    setCurrentMapId(newId);
+    setNodes([]);
+    setEdges([]);
+    
+    // Salvar lista de mapas
+    await fetch('/api/diagnostico', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tech: 'mpls_map_list', maps: newMaps })
+    });
+  };
+
+  const deleteCurrentMap = async () => {
+    if (!confirm('Apagar este mapa permanentemente?')) return;
+    const newMaps = maps.filter(m => m.id !== currentMapId);
+    setMaps(newMaps);
+    if (newMaps.length > 0) {
+      setCurrentMapId(newMaps[0].id);
+    } else {
+      const defaultId = 'default';
+      const defaultMaps = [{ id: defaultId, name: 'Mapa Principal' }];
+      setMaps(defaultMaps);
+      setCurrentMapId(defaultId);
+    }
+    
+    await fetch('/api/diagnostico', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tech: 'mpls_map_list', maps: newMaps.length > 0 ? newMaps : [{ id: 'default', name: 'Mapa Principal' }] })
+    });
+  };
+
+  const addMonitoredDevice = (site: any) => {
+    const newNode = {
+      id: Math.random().toString(36).substr(2, 9),
+      type: site.categoria?.toLowerCase().includes('router') ? 'router' : 
+            site.categoria?.toLowerCase().includes('switch') ? 'sw' : 'server',
+      x: 100,
+      y: 100,
+      name: site.nome_site,
+      ip: site.ip,
+      status: 'Ativo'
+    };
+    setNodes(prev => [...prev, newNode]);
+    setIsImportModalOpen(false);
+  };
 
   const addNode = (type: string) => {
     const newNode = {
@@ -2117,23 +2182,33 @@ function MapasMPLS({ sites }: { sites: any[] }) {
             </div>
           </div>
           <div className="flex gap-2 mt-6">
-            {regions.map(r => (
+            {maps.map(m => (
               <button
-                key={r}
-                onClick={() => setActiveRegion(r)}
+                key={m.id}
+                onClick={() => setCurrentMapId(m.id)}
                 className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${
-                  activeRegion === r 
+                  currentMapId === m.id 
                     ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-105' 
                     : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20 hover:text-white'
                 }`}
               >
-                {r}
+                {m.name}
               </button>
             ))}
+            <button onClick={createNewMap} className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all ml-2" title="Novo Mapa"><PlusCircle className="w-4 h-4" /></button>
+            <button onClick={deleteCurrentMap} className="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all" title="Apagar Mapa Atual"><Trash2 className="w-4 h-4" /></button>
           </div>
         </div>
 
         <div className="flex items-center gap-6">
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            disabled={isLocked}
+            className="px-6 py-4 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-20"
+          >
+            <Server className="w-5 h-5" />
+            Importar Dispositivo
+          </button>
           <div className="flex gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-xl">
             <button 
               onClick={() => setIsLocked(!isLocked)}
@@ -2175,7 +2250,19 @@ function MapasMPLS({ sites }: { sites: any[] }) {
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 relative overflow-hidden" ref={mapRef}>
+      <div 
+        className="flex-1 relative overflow-hidden" 
+        ref={mapRef}
+        onMouseMove={(e) => {
+          if (isAddingConnection && mapRef.current) {
+            const rect = mapRef.current.getBoundingClientRect();
+            setMousePos({ 
+              x: (e.clientX - rect.left) / zoom, 
+              y: (e.clientY - rect.top) / zoom 
+            });
+          }
+        }}
+      >
         <div 
           className="w-full h-full transition-transform duration-200"
           style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
@@ -2192,6 +2279,17 @@ function MapasMPLS({ sites }: { sites: any[] }) {
                 <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1" />
               </linearGradient>
             </defs>
+            {/* Linha Temporária de Conexão */}
+            {isAddingConnection && (
+              <path
+                d={`M ${nodes.find(n => n.id === isAddingConnection)?.x + 128} ${nodes.find(n => n.id === isAddingConnection)?.y + 40} L ${mousePos.x} ${mousePos.y}`}
+                stroke="#3b82f6"
+                strokeWidth="2"
+                fill="none"
+                strokeDasharray="5, 5"
+                className="opacity-50"
+              />
+            )}
             {edges.map(edge => {
               const from = nodes.find(n => n.id === edge.from);
               const to = nodes.find(n => n.id === edge.to);
@@ -2339,6 +2437,58 @@ function MapasMPLS({ sites }: { sites: any[] }) {
         <button onClick={() => setZoom(prev => Math.max(prev - 0.1, 0.5))} className="p-4 hover:bg-white/5 rounded-2xl transition-all text-slate-400 hover:text-white" title="Diminuir Zoom"><ZoomOut className="w-6 h-6" /></button>
         <button onClick={() => setZoom(1)} className="p-4 hover:bg-white/5 rounded-2xl transition-all text-slate-400 hover:text-white" title="Resetar Zoom"><Navigation className="w-6 h-6" /></button>
       </div>
+
+      {/* Modal de Importação */}
+      <AnimatePresence>
+        {isImportModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsImportModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-slate-900 border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-white">Importar Dispositivos</h3>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Selecione um elemento monitorado para o mapa</p>
+                </div>
+                <button onClick={() => setIsImportModalOpen(false)} className="p-3 hover:bg-white/5 rounded-full text-slate-400"><X className="w-6 h-6" /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+                {sites.filter(s => !nodes.some(n => n.ip === s.ip)).map(site => (
+                  <button 
+                    key={site.id}
+                    onClick={() => addMonitoredDevice(site)}
+                    className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-slate-800 ${site.status === 'up' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <Server className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-sm font-black text-white block">{site.nome_site}</span>
+                        <span className="text-[10px] font-mono text-slate-500">{site.ip}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{site.categoria}</span>
+                      <PlusCircle className="w-5 h-5 text-blue-500 opacity-0 group-hover:opacity-100 transition-all" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
