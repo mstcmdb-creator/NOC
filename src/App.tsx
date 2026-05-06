@@ -1098,8 +1098,8 @@ export default function App() {
         </header>
 
         {/* Main View Area */}
-        <main className="flex-1 overflow-y-auto bg-slate-50/50">
-          {/* Sub-Header: Search & Secondary Actions */}
+        <main className={`flex-1 ${activeTab === 'diagnostico' ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-50/50 ${activeTab === 'diagnostico' ? 'p-0' : 'p-4 md:p-8'}`}>
+          {activeTab !== 'diagnostico' && (
           <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3 md:py-4 flex flex-col md:flex-row gap-3 md:gap-4 items-center justify-between">
             <div className="w-full max-w-2xl relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-black transition-colors">
@@ -1149,8 +1149,9 @@ export default function App() {
               </button>
             </div>
           </div>
+          )}
 
-          <div className="p-4 md:p-8">
+          <div className={activeTab === 'diagnostico' ? 'h-full' : 'p-4 md:p-8'}>
             <AnimatePresence mode="wait">
             {activeTab === 'dashboard' ? (
               <motion.div 
@@ -1785,7 +1786,7 @@ function DiagnosticoInicial() {
       </div>
 
       {/* Espaço de Trabalho */}
-      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:32px:32px]">
+      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px]">
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
           <defs>
             <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
