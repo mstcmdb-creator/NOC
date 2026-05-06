@@ -40,7 +40,11 @@ import {
   Cable,
   Network,
   Cpu,
-  Trash
+  Trash,
+  MousePointer2,
+  ZoomIn,
+  ZoomOut,
+  Navigation
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -450,8 +454,8 @@ export default function App() {
               <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-black/20">
                 <Globe className="w-9 h-9 text-white" />
               </div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tighter">MERCURY-JS</h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">NOCng Security Gate</p>
+              <h1 className="text-xl font-black text-white tracking-tighter">Mercury Sentinel</h1>
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Network Intelligence</span>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-6">
@@ -1642,13 +1646,11 @@ function LogRow({ time, device, event, status, color, user, ticket, responsavel 
 
 function DiagnosticoInicial() {
   const techs = [
-    { name: 'FWA', icon: <Radio className="w-4 h-4" /> },
-    { name: 'RadWIN', icon: <Signal className="w-4 h-4" /> },
-    { name: 'Ubiquiti', icon: <Wifi className="w-4 h-4" /> },
-    { name: 'v-SAT iDirect', icon: <Satellite className="w-4 h-4" /> },
-    { name: 'FTTx', icon: <Cable className="w-4 h-4" /> },
-    { name: 'SDH', icon: <Network className="w-4 h-4" /> },
-    { name: 'DWDM', icon: <Cpu className="w-4 h-4" /> }
+    { name: 'FWA' },
+    { name: 'Radwin' },
+    { name: 'Ubiquiti' },
+    { name: 'V-SAT Idirect' },
+    { name: 'FTTX' }
   ];
 
   const [activeTech, setActiveTech] = useState('FWA');
@@ -1656,14 +1658,12 @@ function DiagnosticoInicial() {
   const [edges, setEdges] = useState<any[]>([]);
   const [isAddingConnection, setIsAddingConnection] = useState<string | null>(null);
 
-  // Carregar dados (Prioridade: DB > LocalStorage)
   useEffect(() => {
     const fetchSchema = async () => {
       try {
         const response = await fetch(`/api/diagnostico/${activeTech}`);
         if (response.ok) {
           const data = await response.json();
-          // Se houver dados no DB, usa eles. Senão, tenta local.
           if (data.nodes && data.nodes.length > 0) {
             setNodes(data.nodes);
             setEdges(data.edges || []);
@@ -1675,7 +1675,6 @@ function DiagnosticoInicial() {
           }
         }
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
         const localNodes = localStorage.getItem(`diag_nodes_${activeTech}`);
         const localEdges = localStorage.getItem(`diag_edges_${activeTech}`);
         setNodes(localNodes ? JSON.parse(localNodes) : []);
@@ -1685,11 +1684,8 @@ function DiagnosticoInicial() {
     fetchSchema();
   }, [activeTech]);
 
-  // Salvar dados (Debounce)
   useEffect(() => {
     if (nodes.length === 0 && edges.length === 0) return;
-
-    // Salva local sempre para resposta imediata
     localStorage.setItem(`diag_nodes_${activeTech}`, JSON.stringify(nodes));
     localStorage.setItem(`diag_edges_${activeTech}`, JSON.stringify(edges));
 
@@ -1700,11 +1696,8 @@ function DiagnosticoInicial() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tech: activeTech, nodes, edges })
         });
-      } catch (err) {
-        console.error("Erro ao salvar no Supabase:", err);
-      }
+      } catch (err) {}
     };
-
     const timer = setTimeout(saveToDB, 1000);
     return () => clearTimeout(timer);
   }, [nodes, edges, activeTech]);
@@ -1713,10 +1706,12 @@ function DiagnosticoInicial() {
     const newNode = {
       id: Math.random().toString(36).substr(2, 9),
       type,
-      x: 200 + (Math.random() * 50),
-      y: 200 + (Math.random() * 50),
-      text: type === 'decision' ? 'Pergunta de Decisão?' : type === 'image' ? 'Legenda' : 'Descrição do passo...',
-      image: null
+      x: 400,
+      y: 300,
+      text: type === 'decision' ? 'Latency Threshold Exceeded' : type === 'image' ? 'Main Distribution' : 'CTRL-001',
+      subtitle: type === 'decision' ? 'Last check: 2 min ago' : type === 'image' ? 'Physical connectivity verified via onsite visual inspection log.' : 'Status Active',
+      image: type === 'image' ? 'https://images.unsplash.com/photo-1558494949-ef010cbdcc51?w=400&q=80' : null,
+      tags: type === 'image' ? ['FTTX-HUB', 'VLAN 204'] : []
     };
     setNodes(prev => [...prev, newNode]);
   };
@@ -1725,10 +1720,6 @@ function DiagnosticoInicial() {
     e.stopPropagation();
     setNodes(prev => prev.filter(n => n.id !== id));
     setEdges(prev => prev.filter(edge => edge.from !== id && edge.to !== id));
-  };
-
-  const removeEdge = (id: string) => {
-    setEdges(prev => prev.filter(e => e.id !== id));
   };
 
   const startConnection = (id: string, e: React.MouseEvent) => {
@@ -1749,41 +1740,52 @@ function DiagnosticoInicial() {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50 relative">
-      {/* Barra de Comandos - Z-Index alto para garantir clique */}
-      <div className="sticky top-0 z-[100] px-4 md:px-8 py-4 bg-white/90 backdrop-blur-xl border-b border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
-          {techs.map(t => (
-            <button
-              key={t.name}
-              onClick={() => setActiveTech(t.name)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                activeTech === t.name 
-                  ? 'bg-black text-white shadow-xl scale-105' 
-                  : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              {t.icon}
-              {t.name}
-            </button>
-          ))}
-        </div>
+    <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
+      {/* Header com Branding e Título */}
+      <div className="px-8 py-8 z-30">
+        <h2 className="text-3xl font-black text-slate-900 mb-8 tracking-tight">Diagnóstico Inicial</h2>
         
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <button onClick={() => addNode('step')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg shadow-emerald-200 transition-all">
-            <PlusCircle className="w-4 h-4" /> Passo
-          </button>
-          <button onClick={() => addNode('decision')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg shadow-amber-200 transition-all">
-            <HelpCircle className="w-4 h-4" /> Decisão
-          </button>
-          <button onClick={() => addNode('image')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg shadow-blue-200 transition-all">
-            <ImageIcon className="w-4 h-4" /> Imagem
-          </button>
+        <div className="flex items-center justify-between">
+          <div className="flex gap-4">
+            {techs.map(t => (
+              <button
+                key={t.name}
+                onClick={() => setActiveTech(t.name)}
+                className={`px-8 py-5 rounded-lg text-sm font-black transition-all ${
+                  activeTech === t.name 
+                    ? 'bg-[#047857] text-white shadow-2xl shadow-emerald-500/20 scale-105' 
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-4">
+             <button onClick={() => addNode('step')} className="flex items-center gap-3 px-8 py-5 bg-[#047857] text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:brightness-110 transition-all">
+               <PlusCircle className="w-5 h-5" /> PASSO
+             </button>
+             <button onClick={() => addNode('decision')} className="flex items-center gap-3 px-8 py-5 bg-[#f97316] text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:brightness-110 transition-all">
+               <HelpCircle className="w-5 h-5" /> DECISÃO
+             </button>
+             <button onClick={() => addNode('image')} className="flex items-center gap-3 px-8 py-5 bg-[#3b82f6] text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:brightness-110 transition-all">
+               <ImageIcon className="w-5 h-5" /> IMAGEM
+             </button>
+          </div>
         </div>
       </div>
 
-      {/* Espaço de Trabalho (Canvas) */}
-      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#e2e8f0_1.5px,transparent_1.5px)] [background-size:32px_32px]">
+      {/* Toolbar Flutuante */}
+      <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-2 bg-white p-2 rounded-2xl shadow-2xl border border-slate-100 z-50">
+        <button className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black"><Navigation className="w-6 h-6" /></button>
+        <button className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black"><ZoomIn className="w-6 h-6" /></button>
+        <button className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black"><ZoomOut className="w-6 h-6" /></button>
+        <button className="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 hover:text-black"><HandMetal className="w-6 h-6" /></button>
+      </div>
+
+      {/* Espaço de Trabalho */}
+      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:32px:32px]">
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
           <defs>
             <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -1797,10 +1799,11 @@ function DiagnosticoInicial() {
             return (
               <line 
                 key={edge.id}
-                x1={from.x + 128} y1={from.y + 40} 
-                x2={to.x + 128} y2={to.y + 40} 
-                stroke="#94a3b8" strokeWidth="2" strokeDasharray="5,5"
+                x1={from.x + 150} y1={from.y + 60} 
+                x2={to.x + 150} y2={to.y + 60} 
+                stroke="#94a3b8" strokeWidth="2" strokeDasharray="8,8"
                 markerEnd="url(#arrow)"
+                className="opacity-40"
               />
             );
           })}
@@ -1816,56 +1819,84 @@ function DiagnosticoInicial() {
                 onDragEnd={(e, info) => {
                   setNodes(prev => prev.map(n => n.id === node.id ? { ...n, x: n.x + info.offset.x, y: n.y + info.offset.y } : n));
                 }}
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ x: node.x, y: node.y, opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className={`absolute w-64 bg-white rounded-3xl shadow-2xl border-2 transition-shadow overflow-hidden ${
-                  isAddingConnection === node.id ? 'border-blue-500 ring-4 ring-blue-100' : 'border-slate-100'
+                exit={{ opacity: 0, scale: 0.9 }}
+                className={`absolute group ${node.type === 'image' ? 'w-[450px]' : 'w-[320px]'} bg-white rounded-2xl shadow-2xl border-2 transition-all ${
+                  isAddingConnection === node.id ? 'border-blue-500 ring-4 ring-blue-500/10 scale-105' : 'border-slate-100 hover:border-slate-300'
                 }`}
                 style={{ position: 'absolute' }}
                 onClick={(e) => isAddingConnection && endConnection(node.id, e)}
               >
-                <div className={`h-1.5 w-full ${node.type === 'decision' ? 'bg-amber-400' : node.type === 'image' ? 'bg-blue-400' : 'bg-emerald-400'}`} />
-                <div className="p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[7px] font-black uppercase tracking-tighter text-slate-400">{node.type}</span>
-                    <div className="flex gap-1">
-                      <button onClick={(e) => startConnection(node.id, e)} className="p-1 hover:bg-slate-100 rounded text-slate-400"><Share2 className="w-3 h-3" /></button>
-                      <button onClick={(e) => deleteNode(node.id, e)} className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-500"><Trash2 className="w-3 h-3" /></button>
+                {node.type === 'step' && (
+                  <div className="flex flex-col">
+                    <div className="bg-black p-4 rounded-t-[14px] flex items-center justify-between">
+                      <span className="text-[11px] font-black text-white uppercase tracking-[0.2em]">{node.text}</span>
+                      <Settings className="w-4 h-4 text-white/30" />
+                    </div>
+                    <div className="p-6 flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-400">Status</span>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className="text-sm font-black text-emerald-500 uppercase tracking-widest">Active</span>
+                        <div className="w-32 h-1.5 bg-emerald-500 rounded-full" />
+                      </div>
                     </div>
                   </div>
+                )}
 
-                  {node.type === 'image' ? (
-                    <div className="space-y-2">
-                      <div className="aspect-video bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
-                        {node.image ? <img src={node.image} className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-slate-300" />}
-                      </div>
-                      <input 
-                        type="text" placeholder="URL da Imagem" value={node.image || ''} 
-                        onChange={e => setNodes(nodes.map(n => n.id === node.id ? { ...n, image: e.target.value } : n))}
-                        className="w-full text-[8px] bg-slate-50 p-1 rounded outline-none"
-                      />
+                {node.type === 'decision' && (
+                  <div className="p-8 border-2 border-rose-500 rounded-2xl relative bg-white">
+                    <div className="absolute top-6 left-6 w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center">
+                      <AlertCircle className="w-8 h-8 text-rose-500" />
                     </div>
-                  ) : null}
+                    <div className="ml-20">
+                      <h4 className="text-base font-black text-slate-800 leading-tight mb-1">{node.text}</h4>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{node.subtitle}</p>
+                    </div>
+                  </div>
+                )}
 
-                  <textarea 
-                    value={node.text}
-                    onChange={e => setNodes(nodes.map(n => n.id === node.id ? { ...n, text: e.target.value } : n))}
-                    className="w-full mt-2 text-xs font-bold text-slate-700 bg-transparent resize-none outline-none leading-tight"
-                    rows={2}
-                  />
+                {node.type === 'image' && (
+                  <div className="p-6 flex gap-6">
+                    <div className="w-40 h-40 bg-slate-50 rounded-2xl overflow-hidden shrink-0 border border-slate-100 shadow-inner">
+                      <img src={node.image!} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 flex flex-col pt-1">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Server className="w-4 h-4 text-slate-400" />
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">RACK UNIT 04</span>
+                      </div>
+                      <h4 className="text-xl font-black text-slate-800 leading-none mb-3">{node.text}</h4>
+                      <p className="text-xs font-bold text-slate-500 leading-relaxed mb-6">{node.subtitle}</p>
+                      <div className="mt-auto flex gap-2">
+                        {node.tags?.map(tag => (
+                          <span key={tag} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[9px] font-black rounded-lg uppercase tracking-widest border border-emerald-100">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Controles do Bloco */}
+                <div className="absolute -top-4 -right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                  <button onClick={(e) => startConnection(node.id, e)} className="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-2xl flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-all"><Share2 className="w-5 h-5" /></button>
+                  <button onClick={(e) => deleteNode(node.id, e)} className="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-2xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all"><Trash2 className="w-5 h-5" /></button>
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
+      </div>
 
-        {nodes.length === 0 && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-300 pointer-events-none">
-            <Workflow className="w-12 h-12 opacity-10 mb-4" />
-            <p className="text-[10px] font-black uppercase tracking-[0.2em]">Área de Trabalho Vazia</p>
-          </div>
-        )}
+      {/* Tooltip de Ajuda Inferior */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-8 py-5 bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50 flex items-center gap-5 border border-white/10">
+        <div className="p-2 bg-white/10 rounded-xl">
+          <MousePointer2 className="w-5 h-5 text-emerald-400" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white">Guia Rápido</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Botão direito nos blocos para menu. Use scroll para zoom.</span>
+        </div>
       </div>
     </div>
   );
