@@ -2096,22 +2096,35 @@ function MapasMPLS({ sites }: { sites: any[] }) {
   ];
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0f172a] relative overflow-hidden">
-      <div className="px-8 py-6 z-30 bg-slate-900/90 backdrop-blur-xl border-b border-white/5 flex items-center justify-between">
+    <div className="flex-1 flex flex-col h-full bg-[#020617] relative overflow-hidden select-none">
+      {/* Background Decorativo */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#1e293b_1px,transparent_1px)] [background-size:40px_40px]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,_#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,_#ffffff05_1px,transparent_1px)] [background-size:200px_200px]"></div>
+      </div>
+
+      <div className="px-8 py-6 z-30 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between shadow-2xl">
         <div className="flex flex-col">
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-            <Network className="w-8 h-8 text-blue-500" />
-            Mapas de Rede MPLS
-          </h2>
-          <div className="flex gap-4 mt-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-600/20 rounded-2xl flex items-center justify-center border border-blue-500/30 shadow-[0_0_20px_rgba(37,99,235,0.2)]">
+              <Network className="w-7 h-7 text-blue-500 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic">
+                MPLS <span className="text-blue-500">Topology</span> Matrix
+              </h2>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">Mercury Sentinel NOC Active Vision</p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-6">
             {regions.map(r => (
               <button
                 key={r}
                 onClick={() => setActiveRegion(r)}
-                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${
                   activeRegion === r 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105' 
-                    : 'bg-white/5 text-slate-500 hover:bg-white/10'
+                    ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-105' 
+                    : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20 hover:text-white'
                 }`}
               >
                 {r}
@@ -2120,35 +2133,41 @@ function MapasMPLS({ sites }: { sites: any[] }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
+        <div className="flex items-center gap-6">
+          <div className="flex gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-xl">
             <button 
               onClick={() => setIsLocked(!isLocked)}
-              className={`p-4 rounded-xl transition-all shadow-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${isLocked ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}
+              className={`px-6 py-3 rounded-xl transition-all flex items-center gap-3 text-[10px] font-black uppercase tracking-widest border ${
+                isLocked 
+                  ? 'bg-rose-500/10 border-rose-500/50 text-rose-500' 
+                  : 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+              }`}
             >
-              {isLocked ? <Lock className="w-5 h-5" /> : <Lock className="w-5 h-5 opacity-40" />}
-              {isLocked ? 'Bloqueado' : 'Edição'}
+              {isLocked ? <Lock className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+              {isLocked ? 'Locked' : 'Edit Mode'}
             </button>
             
             <button 
               onClick={exportToPng}
-              className="p-4 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all shadow-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+              className="px-6 py-3 bg-white/5 hover:bg-blue-600 text-slate-400 hover:text-white border border-white/5 rounded-xl transition-all flex items-center gap-3 text-[10px] font-black uppercase tracking-widest"
             >
-              <FileText className="w-5 h-5" />
-              Baixar PNG
+              <FileText className="w-4 h-4" />
+              Export PNG
             </button>
           </div>
 
-          <div className="flex gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
+          <div className="h-12 w-px bg-white/10"></div>
+
+          <div className="grid grid-cols-4 gap-2">
             {nodeTypes.map(t => (
               <button 
                 key={t.id}
                 disabled={isLocked}
                 onClick={() => addNode(t.id)} 
-                className={`flex items-center gap-2 px-4 py-3 ${t.color} text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale`}
+                className={`flex items-center justify-center p-3 ${t.color.replace('bg-', 'text-')} bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all disabled:opacity-20 group`}
+                title={t.label}
               >
-                <PlusCircle className="w-4 h-4 opacity-50" />
-                {t.label}
+                <PlusCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </button>
             ))}
           </div>
@@ -2156,36 +2175,58 @@ function MapasMPLS({ sites }: { sites: any[] }) {
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px]" ref={mapRef}>
+      <div className="flex-1 relative overflow-hidden" ref={mapRef}>
         <div 
           className="w-full h-full transition-transform duration-200"
           style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
         >
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
             <defs>
-              <marker id="arrow-mpls" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" />
-              </marker>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+              <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.1" />
+                <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1" />
+              </linearGradient>
             </defs>
             {edges.map(edge => {
               const from = nodes.find(n => n.id === edge.from);
               const to = nodes.find(n => n.id === edge.to);
               if (!from || !to) return null;
+
+              const x1 = (from.x + 128); 
+              const y1 = (from.y + 40); 
+              const x2 = (to.x + 128);
+              const y2 = (to.y + 40);
+
               return (
-                <g key={edge.id} className="pointer-events-auto cursor-pointer" onClick={() => setEdges(edges.filter(e => e.id !== edge.id))}>
-                  <line 
-                    x1={from.x + 120} y1={from.y + 40} 
-                    x2={to.x + 120} y2={to.y + 40} 
-                    stroke="#3b82f6" strokeWidth="2"
-                    markerEnd="url(#arrow-mpls)"
-                    className="opacity-40 hover:opacity-100 transition-all"
+                <g key={edge.id} className="group/edge pointer-events-auto cursor-pointer" onClick={() => !isLocked && setEdges(edges.filter(e => e.id !== edge.id))}>
+                  <path
+                    d={`M ${x1} ${y1} L ${x2} ${y2}`}
+                    stroke="rgba(59, 130, 246, 0.05)"
+                    strokeWidth="10"
+                    fill="none"
+                    className="transition-all group-hover/edge:stroke-blue-500/20"
+                  />
+                  <path
+                    d={`M ${x1} ${y1} L ${x2} ${y2}`}
+                    stroke="url(#edgeGradient)"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeDasharray="15, 15"
+                    className="animate-dash"
+                    style={{ filter: 'url(#glow)' }}
                   />
                   <text 
-                    x={(from.x + to.x) / 2 + 120} y={(from.y + to.y) / 2 + 35} 
-                    fill="#3b82f6" fontSize="8" fontWeight="bold" 
-                    className="select-none pointer-events-none"
+                    x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 10} 
+                    fill="#3b82f6" fontSize="7" fontWeight="black" 
+                    className="select-none pointer-events-none opacity-40 uppercase tracking-widest"
+                    textAnchor="middle"
                   >
-                    TÚNEL MPLS
+                    Túnel MPLS Active
                   </text>
                 </g>
               );
@@ -2209,10 +2250,10 @@ function MapasMPLS({ sites }: { sites: any[] }) {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ x: node.x, y: node.y, opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className={`absolute group w-64 bg-slate-800/40 backdrop-blur-3xl border-2 transition-all p-5 rounded-[2rem] ${
-                      isAddingConnection === node.id ? 'border-blue-500 ring-8 ring-blue-500/10' : 
-                      isOnline ? 'border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]' : 
-                      'border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.3)] animate-pulse'
+                    className={`absolute group w-64 bg-slate-900/60 backdrop-blur-3xl border-2 transition-all p-5 rounded-[2.5rem] ${
+                      isAddingConnection === node.id ? 'border-blue-500 ring-[12px] ring-blue-500/10' : 
+                      isOnline ? 'border-emerald-500/20 shadow-[0_0_40px_rgba(16,185,129,0.05)] hover:border-emerald-500/40' : 
+                      'border-rose-500/40 shadow-[0_0_40px_rgba(244,63,94,0.15)] animate-pulse'
                     }`}
                     style={{ position: 'absolute' }}
                     onClick={() => !isLocked && isAddingConnection && (() => {

@@ -39,3 +39,12 @@
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
   border-left-width: 4px;
 }
+
+@keyframes dash {
+  from { stroke-dashoffset: 200; }
+  to { stroke-dashoffset: 0; }
+}
+
+.animate-dash {
+  animation: dash 5s linear infinite;
+}
