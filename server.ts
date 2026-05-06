@@ -112,6 +112,42 @@ app.post("/api/sites/update", async (req, res) => {
   }
 });
 
+// ENDPOINTS DIAGNOSTICO & MAPAS
+app.get("/api/diagnostico", async (req, res) => {
+  const { tech } = req.query;
+  try {
+    const { data, error } = await supabase
+      .from('diagnostico_schemas')
+      .select('*')
+      .eq('tech_name', tech)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    res.json(data || { nodes: [], edges: [] });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/diagnostico", express.json(), async (req, res) => {
+  const { tech, nodes, edges } = req.body;
+  try {
+    const { error } = await supabase
+      .from('diagnostico_schemas')
+      .upsert({ 
+        tech_name: tech, 
+        nodes: nodes, 
+        edges: edges,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'tech_name' });
+
+    if (error) throw error;
+    res.send("OK");
+  } catch (err: any) {
+    res.status(500).send(err.message);
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

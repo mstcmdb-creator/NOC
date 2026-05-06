@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { toPng } from 'html-to-image';
 import { 
   Activity, 
   CheckCircle2, 
@@ -1315,7 +1316,7 @@ export default function App() {
                 exit={{ opacity: 0 }}
                 className="h-full flex flex-col"
               >
-                <MapasMPLS />
+                <MapasMPLS sites={sites} />
               </motion.div>
             ) : activeTab === 'diagnostico' ? (
               <motion.div 
@@ -1985,12 +1986,14 @@ function DiagnosticoInicial() {
     </div>
   );
 }
-function MapasMPLS() {
+function MapasMPLS({ sites }: { sites: any[] }) {
   const [nodes, setNodes] = useState<any[]>([]);
   const [edges, setEdges] = useState<any[]>([]);
   const [activeRegion, setActiveRegion] = useState('Rede Core');
   const [isAddingConnection, setIsAddingConnection] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [isLocked, setIsLocked] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   const regions = ['Rede Core', 'Região Norte', 'Região Sul', 'Internacional'];
 
@@ -2063,6 +2066,24 @@ function MapasMPLS() {
     setNodes(prev => prev.map(n => n.id === id ? { ...n, [field]: value } : n));
   };
 
+  const exportToPng = async () => {
+    if (mapRef.current) {
+      try {
+        const dataUrl = await toPng(mapRef.current, {
+          backgroundColor: '#0f172a',
+          quality: 1,
+          pixelRatio: 2
+        });
+        const link = document.createElement('a');
+        link.download = `mapa-mpls-${activeRegion.toLowerCase()}.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (err) {
+        console.error('Erro ao exportar PNG:', err);
+      }
+    }
+  };
+
   const nodeTypes = [
     { id: 'router', label: 'Core P', color: 'bg-blue-600' },
     { id: 'pe', label: 'PE-Edge', color: 'bg-emerald-600' },
@@ -2099,22 +2120,43 @@ function MapasMPLS() {
           </div>
         </div>
 
-        <div className="flex gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
-          {nodeTypes.map(t => (
+        <div className="flex items-center gap-4">
+          <div className="flex gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
             <button 
-              key={t.id}
-              onClick={() => addNode(t.id)} 
-              className={`flex items-center gap-2 px-4 py-3 ${t.color} text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all`}
+              onClick={() => setIsLocked(!isLocked)}
+              className={`p-4 rounded-xl transition-all shadow-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${isLocked ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}
             >
-              <PlusCircle className="w-4 h-4 opacity-50" />
-              {t.label}
+              {isLocked ? <Lock className="w-5 h-5" /> : <Lock className="w-5 h-5 opacity-40" />}
+              {isLocked ? 'Bloqueado' : 'Edição'}
             </button>
-          ))}
+            
+            <button 
+              onClick={exportToPng}
+              className="p-4 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all shadow-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+            >
+              <FileText className="w-5 h-5" />
+              Baixar PNG
+            </button>
+          </div>
+
+          <div className="flex gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
+            {nodeTypes.map(t => (
+              <button 
+                key={t.id}
+                disabled={isLocked}
+                onClick={() => addNode(t.id)} 
+                className={`flex items-center gap-2 px-4 py-3 ${t.color} text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale`}
+              >
+                <PlusCircle className="w-4 h-4 opacity-50" />
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px]">
+      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px]" ref={mapRef}>
         <div 
           className="w-full h-full transition-transform duration-200"
           style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
@@ -2152,28 +2194,34 @@ function MapasMPLS() {
 
           <div className="absolute inset-0 z-10">
             <AnimatePresence>
-              {nodes.map(node => (
-                <motion.div
-                  key={node.id}
-                  drag
-                  dragMomentum={false}
-                  onDragEnd={(e, info) => {
-                    setNodes(prev => prev.map(n => n.id === node.id ? { ...n, x: n.x + info.offset.x / zoom, y: n.y + info.offset.y / zoom } : n));
-                  }}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ x: node.x, y: node.y, opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className={`absolute group w-64 bg-slate-800/40 backdrop-blur-3xl border-2 transition-all p-5 rounded-[2rem] ${
-                    isAddingConnection === node.id ? 'border-blue-500 ring-8 ring-blue-500/10' : 'border-white/5 hover:border-white/20'
-                  }`}
-                  style={{ position: 'absolute' }}
-                  onClick={() => isAddingConnection && (() => {
-                    if (isAddingConnection !== node.id) {
-                      setEdges(prev => [...prev, { id: `${isAddingConnection}-${node.id}`, from: isAddingConnection, to: node.id }]);
-                    }
-                    setIsAddingConnection(null);
-                  })()}
-                >
+              {nodes.map(node => {
+                const siteInfo = sites.find(s => s.ip === node.ip);
+                const isOnline = siteInfo ? siteInfo.status === 'up' : true;
+
+                return (
+                  <motion.div
+                    key={node.id}
+                    drag={!isLocked}
+                    dragMomentum={false}
+                    onDragEnd={(e, info) => {
+                      setNodes(prev => prev.map(n => n.id === node.id ? { ...n, x: n.x + info.offset.x / zoom, y: n.y + info.offset.y / zoom } : n));
+                    }}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ x: node.x, y: node.y, opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className={`absolute group w-64 bg-slate-800/40 backdrop-blur-3xl border-2 transition-all p-5 rounded-[2rem] ${
+                      isAddingConnection === node.id ? 'border-blue-500 ring-8 ring-blue-500/10' : 
+                      isOnline ? 'border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]' : 
+                      'border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.3)] animate-pulse'
+                    }`}
+                    style={{ position: 'absolute' }}
+                    onClick={() => !isLocked && isAddingConnection && (() => {
+                      if (isAddingConnection !== node.id) {
+                        setEdges(prev => [...prev, { id: `${isAddingConnection}-${node.id}`, from: isAddingConnection, to: node.id }]);
+                      }
+                      setIsAddingConnection(null);
+                    })()}
+                  >
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-4">
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br shadow-2xl ${
@@ -2184,68 +2232,62 @@ function MapasMPLS() {
                         'from-slate-500 to-slate-700'
                       }`}>
                         {node.type === 'router' || node.type === 'pe' ? (
-                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                          <svg viewBox="0 0 24 24" className={`w-8 h-8 ${isOnline ? 'text-white' : 'text-rose-100'} fill-none stroke-current stroke-2`}>
                             <circle cx="12" cy="12" r="9" />
                             <path d="M12 7v10M7 12h10M9 9l6 6M15 9l-6 6" />
                           </svg>
                         ) : node.type === 'sw' ? (
-                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                          <svg viewBox="0 0 24 24" className={`w-8 h-8 ${isOnline ? 'text-white' : 'text-rose-100'} fill-none stroke-current stroke-2`}>
                             <rect x="3" y="6" width="18" height="12" rx="2" />
                             <path d="M7 10h10M7 14h10M9 8v8M15 8v8" />
                           </svg>
                         ) : node.type === 'fw' ? (
-                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                          <svg viewBox="0 0 24 24" className={`w-8 h-8 ${isOnline ? 'text-white' : 'text-rose-100'} fill-none stroke-current stroke-2`}>
                             <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" />
                             <path d="M12 17v-6M8 11h8" />
                           </svg>
                         ) : node.type === 'cloud' ? (
-                          <Globe className="w-8 h-8 text-white" />
+                          <Globe className={`w-8 h-8 ${isOnline ? 'text-white' : 'text-rose-100'}`} />
                         ) : node.type === 'radio' ? (
-                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                          <svg viewBox="0 0 24 24" className={`w-8 h-8 ${isOnline ? 'text-white' : 'text-rose-100'} fill-none stroke-current stroke-2`}>
                             <circle cx="12" cy="12" r="2" />
                             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                           </svg>
                         ) : node.type === 'sat' ? (
-                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                          <svg viewBox="0 0 24 24" className={`w-8 h-8 ${isOnline ? 'text-white' : 'text-rose-100'} fill-none stroke-current stroke-2`}>
                             <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
                             <circle cx="12" cy="12" r="3" />
                             <path d="M12 9V5M12 19v-4M9 12H5M19 12h-4" />
                           </svg>
                         ) : (
-                          <Server className="w-8 h-8 text-white" />
+                          <Server className={`w-8 h-8 ${isOnline ? 'text-white' : 'text-rose-100'}`} />
                         )}
                       </div>
                       <div className="flex flex-col">
                         <input 
+                          disabled={isLocked}
                           value={node.name}
                           onChange={e => updateNode(node.id, 'name', e.target.value)}
                           className="bg-transparent text-xs font-black text-white outline-none w-full"
                         />
                         <input 
+                          disabled={isLocked}
                           value={node.ip}
                           onChange={e => updateNode(node.id, 'ip', e.target.value)}
                           className="bg-transparent text-[10px] font-bold text-slate-500 outline-none w-full mt-0.5"
                         />
                       </div>
                     </div>
+                    {!isLocked && (
                     <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
                       <button onClick={(e) => { e.stopPropagation(); setIsAddingConnection(node.id); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-all shadow-xl" title="Conectar"><Share2 className="w-3 h-3" /></button>
                       <button onClick={(e) => deleteNode(node.id, e)} className="p-2 bg-rose-500/20 hover:bg-rose-500 rounded-lg text-rose-500 hover:text-white transition-all shadow-xl" title="Apagar"><Trash2 className="w-3 h-3" /></button>
                     </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <div className="bg-white/5 p-2 rounded-lg">
-                      <span className="text-[7px] font-black text-slate-500 uppercase block">Latência</span>
-                      <span className="text-[10px] font-black text-emerald-400">{node.latency}</span>
-                    </div>
-                    <div className="bg-white/5 p-2 rounded-lg">
-                      <span className="text-[7px] font-black text-slate-500 uppercase block">Perda</span>
-                      <span className="text-[10px] font-black text-blue-400">{node.loss}</span>
-                    </div>
+                    )}
                   </div>
                 </motion.div>
-              ))}
+              );
+            })}
             </AnimatePresence>
           </div>
         </div>
