@@ -2069,6 +2069,8 @@ function MapasMPLS() {
     { id: 'sw', label: 'Switch L3', color: 'bg-indigo-600' },
     { id: 'fw', label: 'Firewall', color: 'bg-rose-600' },
     { id: 'cloud', label: 'Internet', color: 'bg-sky-600' },
+    { id: 'radio', label: 'Rádio/FWA', color: 'bg-amber-600' },
+    { id: 'sat', label: 'Satélite', color: 'bg-purple-600' },
     { id: 'server', label: 'Server', color: 'bg-slate-600' }
   ];
 
@@ -2198,6 +2200,17 @@ function MapasMPLS() {
                           </svg>
                         ) : node.type === 'cloud' ? (
                           <Globe className="w-8 h-8 text-white" />
+                        ) : node.type === 'radio' ? (
+                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                            <circle cx="12" cy="12" r="2" />
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                          </svg>
+                        ) : node.type === 'sat' ? (
+                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                            <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M12 9V5M12 19v-4M9 12H5M19 12h-4" />
+                          </svg>
                         ) : (
                           <Server className="w-8 h-8 text-white" />
                         )}
