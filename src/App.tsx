@@ -1847,7 +1847,7 @@ function DiagnosticoInicial() {
                         className="p-1.5 text-slate-300 hover:bg-rose-50 hover:text-rose-500 rounded-lg transition-all"
                         title="Apagar"
                       >
-                        <Trash className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
