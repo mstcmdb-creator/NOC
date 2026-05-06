@@ -1660,7 +1660,11 @@ function LogRow({ time, device, event, status, color, user, ticket, responsavel 
           {status}
         </span>
       </td>
-      <td className="function DiagnosticoInicial() {
+    </tr>
+  );
+}
+
+function DiagnosticoInicial() {
   const techs = [
     { name: 'FWA' },
     { name: 'Radwin' },
