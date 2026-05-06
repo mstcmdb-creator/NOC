@@ -2038,13 +2038,13 @@ function MapasMPLS() {
     return () => clearTimeout(timer);
   }, [nodes, edges, activeRegion]);
 
-  const addNode = (type: 'router' | 'pe' | 'cloud' | 'link') => {
+  const addNode = (type: string) => {
     const newNode = {
       id: Math.random().toString(36).substr(2, 9),
       type,
       x: 400 / zoom,
       y: 300 / zoom,
-      name: type === 'router' ? 'P-ROUTER' : type === 'pe' ? 'PE-AGG' : type === 'cloud' ? 'INTERNET-UP' : 'LINK-SLA',
+      name: type.toUpperCase(),
       ip: '10.255.0.' + Math.floor(Math.random() * 254),
       status: 'Ativo',
       latency: Math.floor(Math.random() * 50) + 'ms',
@@ -2063,39 +2063,51 @@ function MapasMPLS() {
     setNodes(prev => prev.map(n => n.id === id ? { ...n, [field]: value } : n));
   };
 
+  const nodeTypes = [
+    { id: 'router', label: 'Core P', color: 'bg-blue-600' },
+    { id: 'pe', label: 'PE-Edge', color: 'bg-emerald-600' },
+    { id: 'sw', label: 'Switch L3', color: 'bg-indigo-600' },
+    { id: 'fw', label: 'Firewall', color: 'bg-rose-600' },
+    { id: 'cloud', label: 'Internet', color: 'bg-sky-600' },
+    { id: 'server', label: 'Server', color: 'bg-slate-600' }
+  ];
+
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-900 relative overflow-hidden">
-      <div className="px-8 py-8 z-30 bg-slate-900/80 backdrop-blur-md border-b border-white/5">
-        <h2 className="text-3xl font-black text-white mb-8 tracking-tight">Mapas de Rede MPLS</h2>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex gap-4">
+    <div className="flex-1 flex flex-col h-full bg-[#0f172a] relative overflow-hidden">
+      <div className="px-8 py-6 z-30 bg-slate-900/90 backdrop-blur-xl border-b border-white/5 flex items-center justify-between">
+        <div className="flex flex-col">
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Network className="w-8 h-8 text-blue-500" />
+            Mapas de Rede MPLS
+          </h2>
+          <div className="flex gap-4 mt-4">
             {regions.map(r => (
               <button
                 key={r}
                 onClick={() => setActiveRegion(r)}
-                className={`px-8 py-4 rounded-lg text-sm font-black transition-all ${
+                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                   activeRegion === r 
-                    ? 'bg-blue-600 text-white shadow-2xl shadow-blue-500/20 scale-105' 
-                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105' 
+                    : 'bg-white/5 text-slate-500 hover:bg-white/10'
                 }`}
               >
                 {r}
               </button>
             ))}
           </div>
+        </div>
 
-          <div className="flex gap-4">
-             <button onClick={() => addNode('router')} className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:brightness-110 transition-all">
-               <Cpu className="w-5 h-5" /> CORE P
-             </button>
-             <button onClick={() => addNode('pe')} className="flex items-center gap-3 px-6 py-4 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:brightness-110 transition-all">
-               <Share2 className="w-5 h-5" /> PE-EDGE
-             </button>
-             <button onClick={() => addNode('cloud')} className="flex items-center gap-3 px-6 py-4 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:brightness-110 transition-all">
-               <Globe className="w-5 h-5" /> NUVEM
-             </button>
-          </div>
+        <div className="flex gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
+          {nodeTypes.map(t => (
+            <button 
+              key={t.id}
+              onClick={() => addNode(t.id)} 
+              className={`flex items-center gap-2 px-4 py-3 ${t.color} text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all`}
+            >
+              <PlusCircle className="w-4 h-4 opacity-50" />
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -2149,8 +2161,8 @@ function MapasMPLS() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ x: node.x, y: node.y, opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className={`absolute group w-60 bg-slate-800/80 backdrop-blur-xl border-2 transition-all p-4 rounded-2xl ${
-                    isAddingConnection === node.id ? 'border-blue-500 ring-4 ring-blue-500/20' : 'border-white/5 hover:border-white/20'
+                  className={`absolute group w-64 bg-slate-800/40 backdrop-blur-3xl border-2 transition-all p-5 rounded-[2rem] ${
+                    isAddingConnection === node.id ? 'border-blue-500 ring-8 ring-blue-500/10' : 'border-white/5 hover:border-white/20'
                   }`}
                   style={{ position: 'absolute' }}
                   onClick={() => isAddingConnection && (() => {
@@ -2160,26 +2172,54 @@ function MapasMPLS() {
                     setIsAddingConnection(null);
                   })()}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-2 rounded-xl ${node.type === 'router' ? 'bg-blue-500/20 text-blue-400' : node.type === 'pe' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                      {node.type === 'router' ? <Cpu className="w-5 h-5" /> : node.type === 'pe' ? <Share2 className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br shadow-2xl ${
+                        node.type === 'router' ? 'from-blue-500 to-blue-700 shadow-blue-500/20' : 
+                        node.type === 'pe' ? 'from-emerald-500 to-emerald-700 shadow-emerald-500/20' : 
+                        node.type === 'sw' ? 'from-indigo-500 to-indigo-700 shadow-indigo-500/20' :
+                        node.type === 'fw' ? 'from-rose-500 to-rose-700 shadow-rose-500/20' :
+                        'from-slate-500 to-slate-700'
+                      }`}>
+                        {node.type === 'router' || node.type === 'pe' ? (
+                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 7v10M7 12h10M9 9l6 6M15 9l-6 6" />
+                          </svg>
+                        ) : node.type === 'sw' ? (
+                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                            <rect x="3" y="6" width="18" height="12" rx="2" />
+                            <path d="M7 10h10M7 14h10M9 8v8M15 8v8" />
+                          </svg>
+                        ) : node.type === 'fw' ? (
+                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-none stroke-current stroke-2">
+                            <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" />
+                            <path d="M12 17v-6M8 11h8" />
+                          </svg>
+                        ) : node.type === 'cloud' ? (
+                          <Globe className="w-8 h-8 text-white" />
+                        ) : (
+                          <Server className="w-8 h-8 text-white" />
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <input 
+                          value={node.name}
+                          onChange={e => updateNode(node.id, 'name', e.target.value)}
+                          className="bg-transparent text-xs font-black text-white outline-none w-full"
+                        />
+                        <input 
+                          value={node.ip}
+                          onChange={e => updateNode(node.id, 'ip', e.target.value)}
+                          className="bg-transparent text-[10px] font-bold text-slate-500 outline-none w-full mt-0.5"
+                        />
+                      </div>
                     </div>
-                    <div className="flex gap-1">
-                      <button onClick={(e) => { e.stopPropagation(); setIsAddingConnection(node.id); }} className="p-1 hover:bg-white/5 rounded text-slate-500" title="Conectar"><Share2 className="w-3 h-3" /></button>
-                      <button onClick={(e) => deleteNode(node.id, e)} className="p-1 hover:bg-rose-500/20 rounded text-slate-500 hover:text-rose-500" title="Apagar"><Trash2 className="w-3 h-3" /></button>
+                    <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
+                      <button onClick={(e) => { e.stopPropagation(); setIsAddingConnection(node.id); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-all shadow-xl" title="Conectar"><Share2 className="w-3 h-3" /></button>
+                      <button onClick={(e) => deleteNode(node.id, e)} className="p-2 bg-rose-500/20 hover:bg-rose-500 rounded-lg text-rose-500 hover:text-white transition-all shadow-xl" title="Apagar"><Trash2 className="w-3 h-3" /></button>
                     </div>
                   </div>
-
-                  <input 
-                    value={node.name}
-                    onChange={e => updateNode(node.id, 'name', e.target.value)}
-                    className="bg-transparent text-sm font-black text-white outline-none w-full mb-1"
-                  />
-                  <input 
-                    value={node.ip}
-                    onChange={e => updateNode(node.id, 'ip', e.target.value)}
-                    className="bg-transparent text-[10px] font-bold text-slate-500 outline-none w-full"
-                  />
 
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <div className="bg-white/5 p-2 rounded-lg">
