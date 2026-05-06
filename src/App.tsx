@@ -1641,50 +1641,231 @@ function LogRow({ time, device, event, status, color, user, ticket, responsavel 
 }
 
 function DiagnosticoInicial() {
+  const techs = [
+    { name: 'FWA', icon: <Radio className="w-4 h-4" /> },
+    { name: 'RadWIN', icon: <Signal className="w-4 h-4" /> },
+    { name: 'Ubiquiti', icon: <Wifi className="w-4 h-4" /> },
+    { name: 'v-SAT iDirect', icon: <Satellite className="w-4 h-4" /> },
+    { name: 'FTTx', icon: <Cable className="w-4 h-4" /> },
+    { name: 'SDH', icon: <Network className="w-4 h-4" /> },
+    { name: 'DWDM', icon: <Cpu className="w-4 h-4" /> }
+  ];
+
   const [activeTech, setActiveTech] = useState('FWA');
   const [nodes, setNodes] = useState<any[]>([]);
-  const techs = ['FWA', 'RadWIN', 'Ubiquiti', 'v-SAT iDirect', 'FTTx', 'SDH', 'DWDM'];
+  const [edges, setEdges] = useState<any[]>([]);
+  const [isAddingConnection, setIsAddingConnection] = useState<string | null>(null);
 
-  const addNode = (type: string) => {
+  // Carregar dados (Prioridade: DB > LocalStorage)
+  useEffect(() => {
+    const fetchSchema = async () => {
+      try {
+        const response = await fetch(`/api/diagnostico/${activeTech}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Se houver dados no DB, usa eles. Senão, tenta local.
+          if (data.nodes && data.nodes.length > 0) {
+            setNodes(data.nodes);
+            setEdges(data.edges || []);
+          } else {
+            const localNodes = localStorage.getItem(`diag_nodes_${activeTech}`);
+            const localEdges = localStorage.getItem(`diag_edges_${activeTech}`);
+            setNodes(localNodes ? JSON.parse(localNodes) : []);
+            setEdges(localEdges ? JSON.parse(localEdges) : []);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        const localNodes = localStorage.getItem(`diag_nodes_${activeTech}`);
+        const localEdges = localStorage.getItem(`diag_edges_${activeTech}`);
+        setNodes(localNodes ? JSON.parse(localNodes) : []);
+        setEdges(localEdges ? JSON.parse(localEdges) : []);
+      }
+    };
+    fetchSchema();
+  }, [activeTech]);
+
+  // Salvar dados (Debounce)
+  useEffect(() => {
+    if (nodes.length === 0 && edges.length === 0) return;
+
+    // Salva local sempre para resposta imediata
+    localStorage.setItem(`diag_nodes_${activeTech}`, JSON.stringify(nodes));
+    localStorage.setItem(`diag_edges_${activeTech}`, JSON.stringify(edges));
+
+    const saveToDB = async () => {
+      try {
+        await fetch('/api/diagnostico', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tech: activeTech, nodes, edges })
+        });
+      } catch (err) {
+        console.error("Erro ao salvar no Supabase:", err);
+      }
+    };
+
+    const timer = setTimeout(saveToDB, 1000);
+    return () => clearTimeout(timer);
+  }, [nodes, edges, activeTech]);
+
+  const addNode = (type: 'step' | 'image' | 'decision') => {
     const newNode = {
-      id: Math.random().toString(36).substring(7),
+      id: Math.random().toString(36).substr(2, 9),
       type,
-      text: 'Novo Bloco ' + type
+      x: 200 + (Math.random() * 50),
+      y: 200 + (Math.random() * 50),
+      text: type === 'decision' ? 'Pergunta de Decisão?' : type === 'image' ? 'Legenda' : 'Descrição do passo...',
+      image: null
     };
     setNodes(prev => [...prev, newNode]);
   };
 
+  const deleteNode = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNodes(prev => prev.filter(n => n.id !== id));
+    setEdges(prev => prev.filter(edge => edge.from !== id && edge.to !== id));
+  };
+
+  const removeEdge = (id: string) => {
+    setEdges(prev => prev.filter(e => e.id !== id));
+  };
+
+  const startConnection = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsAddingConnection(id);
+  };
+
+  const endConnection = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isAddingConnection && isAddingConnection !== id) {
+      if (!edges.some(edge => edge.from === isAddingConnection && edge.to === id)) {
+        setEdges(prev => [...prev, { id: `${isAddingConnection}-${id}`, from: isAddingConnection, to: id }]);
+      }
+      setIsAddingConnection(null);
+    } else {
+      setIsAddingConnection(null);
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col h-full bg-white p-10 overflow-auto">
-      <div className="flex gap-4 mb-10">
-        {techs.map(t => (
-          <button 
-            key={t} 
-            onClick={() => setActiveTech(t)}
-            className={`px-4 py-2 rounded-lg font-bold ${activeTech === t ? 'bg-black text-white' : 'bg-slate-100'}`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex gap-4 mb-10">
-        <button onClick={() => addNode('Passo')} className="px-8 py-4 bg-emerald-500 text-white font-black rounded-xl shadow-lg">+ ADICIONAR PASSO</button>
-        <button onClick={() => addNode('Decisao')} className="px-8 py-4 bg-amber-500 text-white font-black rounded-xl shadow-lg">+ ADICIONAR DECISÃO</button>
-      </div>
-
-      <div className="flex-1 border-2 border-dashed border-slate-200 rounded-3xl p-10">
-        <h2 className="text-xl font-black mb-4">Esquema para: {activeTech}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {nodes.map(node => (
-            <div key={node.id} className="p-6 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm">
-              <span className="text-[10px] font-black uppercase text-slate-400">{node.type}</span>
-              <p className="font-bold text-slate-700 mt-2">{node.text}</p>
-              <button onClick={() => setNodes(nodes.filter(n => n.id !== node.id))} className="text-rose-500 text-xs mt-4 font-bold">Remover</button>
-            </div>
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50 relative">
+      {/* Barra de Comandos - Z-Index alto para garantir clique */}
+      <div className="sticky top-0 z-[100] px-4 md:px-8 py-4 bg-white/90 backdrop-blur-xl border-b border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
+          {techs.map(t => (
+            <button
+              key={t.name}
+              onClick={() => setActiveTech(t.name)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                activeTech === t.name 
+                  ? 'bg-black text-white shadow-xl scale-105' 
+                  : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+              }`}
+            >
+              {t.icon}
+              {t.name}
+            </button>
           ))}
-          {nodes.length === 0 && <p className="text-slate-400 italic">Nenhum bloco adicionado ainda.</p>}
         </div>
+        
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <button onClick={() => addNode('step')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg shadow-emerald-200 transition-all">
+            <PlusCircle className="w-4 h-4" /> Passo
+          </button>
+          <button onClick={() => addNode('decision')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg shadow-amber-200 transition-all">
+            <HelpCircle className="w-4 h-4" /> Decisão
+          </button>
+          <button onClick={() => addNode('image')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg shadow-blue-200 transition-all">
+            <ImageIcon className="w-4 h-4" /> Imagem
+          </button>
+        </div>
+      </div>
+
+      {/* Espaço de Trabalho (Canvas) */}
+      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#e2e8f0_1.5px,transparent_1.5px)] [background-size:32px_32px]">
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+            </marker>
+          </defs>
+          {edges.map(edge => {
+            const from = nodes.find(n => n.id === edge.from);
+            const to = nodes.find(n => n.id === edge.to);
+            if (!from || !to) return null;
+            return (
+              <line 
+                key={edge.id}
+                x1={from.x + 128} y1={from.y + 40} 
+                x2={to.x + 128} y2={to.y + 40} 
+                stroke="#94a3b8" strokeWidth="2" strokeDasharray="5,5"
+                markerEnd="url(#arrow)"
+              />
+            );
+          })}
+        </svg>
+
+        <div className="absolute inset-0 z-10">
+          <AnimatePresence>
+            {nodes.map(node => (
+              <motion.div
+                key={node.id}
+                drag
+                dragMomentum={false}
+                onDragEnd={(e, info) => {
+                  setNodes(prev => prev.map(n => n.id === node.id ? { ...n, x: n.x + info.offset.x, y: n.y + info.offset.y } : n));
+                }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ x: node.x, y: node.y, opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className={`absolute w-64 bg-white rounded-3xl shadow-2xl border-2 transition-shadow overflow-hidden ${
+                  isAddingConnection === node.id ? 'border-blue-500 ring-4 ring-blue-100' : 'border-slate-100'
+                }`}
+                style={{ position: 'absolute' }}
+                onClick={(e) => isAddingConnection && endConnection(node.id, e)}
+              >
+                <div className={`h-1.5 w-full ${node.type === 'decision' ? 'bg-amber-400' : node.type === 'image' ? 'bg-blue-400' : 'bg-emerald-400'}`} />
+                <div className="p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[7px] font-black uppercase tracking-tighter text-slate-400">{node.type}</span>
+                    <div className="flex gap-1">
+                      <button onClick={(e) => startConnection(node.id, e)} className="p-1 hover:bg-slate-100 rounded text-slate-400"><Share2 className="w-3 h-3" /></button>
+                      <button onClick={(e) => deleteNode(node.id, e)} className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-500"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  </div>
+
+                  {node.type === 'image' ? (
+                    <div className="space-y-2">
+                      <div className="aspect-video bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
+                        {node.image ? <img src={node.image} className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-slate-300" />}
+                      </div>
+                      <input 
+                        type="text" placeholder="URL da Imagem" value={node.image || ''} 
+                        onChange={e => setNodes(nodes.map(n => n.id === node.id ? { ...n, image: e.target.value } : n))}
+                        className="w-full text-[8px] bg-slate-50 p-1 rounded outline-none"
+                      />
+                    </div>
+                  ) : null}
+
+                  <textarea 
+                    value={node.text}
+                    onChange={e => setNodes(nodes.map(n => n.id === node.id ? { ...n, text: e.target.value } : n))}
+                    className="w-full mt-2 text-xs font-bold text-slate-700 bg-transparent resize-none outline-none leading-tight"
+                    rows={2}
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {nodes.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-300 pointer-events-none">
+            <Workflow className="w-12 h-12 opacity-10 mb-4" />
+            <p className="text-[10px] font-black uppercase tracking-[0.2em]">Área de Trabalho Vazia</p>
+          </div>
+        )}
       </div>
     </div>
   );
