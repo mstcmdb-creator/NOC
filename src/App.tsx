@@ -191,6 +191,23 @@ export default function App() {
       const sortedData = (data || []).sort((a: Site, b: Site) => 
         (a.nome_site || '').localeCompare(b.nome_site || '')
       );
+      // Verifica timeout para sites da categoria Cliente (60 segundos)
+      const now = new Date().getTime();
+      const timeoutMs = 60000; // 60 segundos conforme requisitado
+      
+      const sitesToTimeout = sortedData.filter((s: Site) => {
+        if (!s.categoria?.toLowerCase().includes('cliente')) return false;
+        if (s.status !== 'up') return false;
+        if (!s.ultima_verificacao) return false;
+        return (now - new Date(s.ultima_verificacao).getTime()) > timeoutMs;
+      });
+
+      for (const site of sitesToTimeout) {
+        // Envia request para update-status para down
+        fetch(`/api/update-status?ip=${site.ip}&status=down`).catch(console.error);
+        site.status = 'down'; // Atualiza localmente na interface
+      }
+
       setSites(sortedData);
       fetchGlobalLogs(); // Atualizar logs reais
       setLoading(false);

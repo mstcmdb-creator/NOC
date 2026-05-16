@@ -74,6 +74,7 @@ app.get("/api/sites", async (req, res) => {
 app.get("/api/update-status", async (req, res) => {
   const { ip, status, name, category } = req.query;
   const cleanIp = String(ip).trim();
+  const statusLower = String(status).toLowerCase();
   
   if (!cleanIp || !status) {
     return res.status(400).send("Faltam parâmetros ip e status");
@@ -115,7 +116,7 @@ app.get("/api/update-status", async (req, res) => {
     const uptimeSLA = tempoTotal > 0 ? parseFloat((tempoOnline / tempoTotal * 100).toFixed(2)) : 100.0;
 
     // DETEÇÃO DE RESOLUÇÃO (Passou de DOWN para UP)
-    if (oldSite?.status === 'down' && status === 'up') {
+    if (oldSite?.status === 'down' && statusLower === 'up') {
       const agora = new Date();
       const caiuEm = new Date(oldSite?.status_desde || oldSite?.ultima_verificacao || agora.toISOString());
       const tempoFalha = Math.floor((agora.getTime() - caiuEm.getTime()) / 1000);
@@ -132,7 +133,7 @@ app.get("/api/update-status", async (req, res) => {
       .from('sites')
       .upsert({ 
         ip: cleanIp, 
-        status: String(status).toLowerCase(), 
+        status: statusLower, 
         nome_site: name as string || oldSite?.nome_site || (ip as string),
         categoria: category as string || oldSite?.categoria || 'Site',
         tempo_total_segundos: tempoTotal,
@@ -141,9 +142,9 @@ app.get("/api/update-status", async (req, res) => {
         total_incidentes_resolvidos: totalIncidentes,
         total_tempo_resolucao_segundos: totalTempoResolucao,
         tmro_segundos: tmroSegundos,
-        ticket_numero: (String(status).toLowerCase() === 'up') ? '' : (oldSite?.ticket_numero || ''),
-        responsavel: (String(status).toLowerCase() === 'up') ? '' : (oldSite?.responsavel || ''),
-        status_desde: (status !== oldSite?.status) ? new Date().toISOString() : (oldSite?.status_desde || new Date().toISOString()),
+        ticket_numero: (statusLower === 'up') ? '' : (oldSite?.ticket_numero || ''),
+        responsavel: (statusLower === 'up') ? '' : (oldSite?.responsavel || ''),
+        status_desde: (statusLower !== oldSite?.status) ? new Date().toISOString() : (oldSite?.status_desde || new Date().toISOString()),
         ultima_verificacao: new Date().toISOString()
       }, { onConflict: 'ip' });
 
