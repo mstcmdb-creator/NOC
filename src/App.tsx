@@ -1125,6 +1125,13 @@ export default function App() {
           </div>
         </header>
 
+        {/* ALERTA DE MANUTENÇÃO */}
+        <div className="bg-amber-500 text-amber-950 px-4 py-3 flex items-center justify-center gap-3 shadow-md z-30 relative">
+          <AlertCircle className="w-6 h-6 animate-pulse" />
+          <span className="font-black tracking-widest uppercase text-sm md:text-base">Atenção: Sistema em Manutenção</span>
+          <AlertCircle className="w-6 h-6 animate-pulse" />
+        </div>
+
         {/* Main View Area */}
         <main className={`flex-1 ${(activeTab === 'diagnostico' || activeTab === 'mapas') ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-50/50 ${(activeTab === 'diagnostico' || activeTab === 'mapas') ? 'p-0' : 'p-4 md:p-8'}`}>
           {(activeTab !== 'diagnostico' && activeTab !== 'mapas') && (
