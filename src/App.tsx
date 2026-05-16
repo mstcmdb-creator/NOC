@@ -191,9 +191,9 @@ export default function App() {
       const sortedData = (data || []).sort((a: Site, b: Site) => 
         (a.nome_site || '').localeCompare(b.nome_site || '')
       );
-      // Verifica timeout para sites da categoria Cliente (60 segundos)
+      // Verifica timeout para sites da categoria Cliente (90 segundos para tolerância)
       const now = new Date().getTime();
-      const timeoutMs = 60000; // 60 segundos conforme requisitado
+      const timeoutMs = 90000; // Aumentado para 90s para evitar conflitos com pings de 60s
       
       const sitesToTimeout = sortedData.filter((s: Site) => {
         if (!s.categoria?.toLowerCase().includes('cliente')) return false;
